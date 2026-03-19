@@ -29,7 +29,7 @@ struct HomeView: View {
                     .disabled(appModel.isImporting)
             }
 
-            PhaseAInstructionsCard()
+            ImportInstructionsCard()
         }
         .navigationTitle("Bujet")
     }

@@ -10,7 +10,7 @@ import SwiftUI
 struct BujetApp: App {
     @State private var appModel = AppModel(
         transactionRepository: LocalTransactionRepository(),
-        importService: MockPhaseAImportService()
+        importService: BackendImportService(baseURL: BackendConfiguration.baseURL)
     )
 
     var body: some Scene {
@@ -19,4 +19,3 @@ struct BujetApp: App {
         }
     }
 }
-

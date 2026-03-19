@@ -7,7 +7,7 @@
 import Foundation
 
 struct Transaction: Identifiable, Codable, Hashable {
-    let id: UUID
+    let id: String
     let bookedAt: Date
     let description: String
     let merchantName: String

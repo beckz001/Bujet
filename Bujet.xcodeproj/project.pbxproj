@@ -29,9 +29,22 @@
 		C21CFF532F6AF64C007C41D9 /* BujetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BujetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C21CFFC52F6B2206007C41D9 /* Exceptions for "Bujet" folder in "Bujet" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C21CFF3B2F6AF649007C41D9 /* Bujet */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C21CFF3E2F6AF649007C41D9 /* Bujet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C21CFFC52F6B2206007C41D9 /* Exceptions for "Bujet" folder in "Bujet" target */,
+			);
 			path = Bujet;
 			sourceTree = "<group>";
 		};
@@ -435,6 +448,8 @@
 				DEVELOPMENT_TEAM = 4Y927CFRKM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bujet/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -467,6 +482,8 @@
 				DEVELOPMENT_TEAM = 4Y927CFRKM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bujet/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
