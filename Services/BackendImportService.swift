@@ -54,7 +54,7 @@ private struct ImportResponseBody: Decodable {
     let transactions: [Transaction]
 }
 
-private struct BackendErrorBody: Decodable {
+struct BackendErrorBody: Decodable {
     let error: String
     let message: String
 }
@@ -72,4 +72,3 @@ enum BackendImportError: LocalizedError {
         }
     }
 }
-

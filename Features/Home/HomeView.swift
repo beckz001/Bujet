@@ -15,23 +15,40 @@ struct HomeView: View {
         Form {
             ConnectionStatusCard(connectionState: appModel.connectionState)
 
-            Section("TrueLayer Code Import") {
+            Section("Import Transactions") {
+                Button("Import Transactions", systemImage: "arrow.down.circle", action: connectBankAccount)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(appModel.isImporting)
+
+                if appModel.isImporting {
+                    ProgressView("Connecting and importing…")
+                }
+
+                Text("Starts the TrueLayer login flow, exchanges the code in the backend, and imports transactions automatically.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Manual Fallback (Debug Only)") {
                 TextField("Paste authentication code", text: $appModel.pastedAuthCode, axis: .vertical)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.body)
 
-                Button("Import Transactions", systemImage: "arrow.down.circle", action: importTransactions)
-                    .buttonStyle(.borderedProminent)
+                Button("Import Transactions Manually", systemImage: "arrow.down.circle", action: importTransactions)
                     .disabled(appModel.isImporting || appModel.pastedAuthCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Button("Clear Imported Transactions", systemImage: "trash", role: .destructive, action: clearTransactions)
-                    .disabled(appModel.isImporting)
             }
+
+            Button("Clear Imported Transactions", systemImage: "trash", role: .destructive, action: clearTransactions)
+                .disabled(appModel.isImporting)
 
             ImportInstructionsCard()
         }
         .navigationTitle("Bujet")
+    }
+
+    private func connectBankAccount() {
+        Task {
+            await appModel.startTrueLayerFlow()
+        }
     }
 
     private func importTransactions() {
@@ -46,4 +63,3 @@ struct HomeView: View {
         }
     }
 }
-
