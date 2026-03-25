@@ -10,14 +10,16 @@ import Observation
 
 struct HomeView: View {
     @Bindable var appModel: AppModel
+    
+    @State private var showingClearAlert = false
 
     var body: some View {
         Form {
             ConnectionStatusCard(connectionState: appModel.connectionState)
 
             Section("Import Transactions") {
-                Button("Import Transactions", systemImage: "arrow.down.circle", action: connectBankAccount)
-                    .buttonStyle(.borderedProminent)
+                Button("Import Transactions", action: connectBankAccount)
+                    .buttonStyle(.glassProminent)
                     .disabled(appModel.isImporting)
 
                 if appModel.isImporting {
@@ -37,8 +39,18 @@ struct HomeView: View {
                     .disabled(appModel.isImporting || appModel.pastedAuthCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
-            Button("Clear Imported Transactions", systemImage: "trash", role: .destructive, action: clearTransactions)
-                .disabled(appModel.isImporting)
+            Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
+                showingClearAlert = true
+            }
+            .disabled(appModel.isImporting)
+            .alert("Clear Imported Transactions?", isPresented: $showingClearAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    clearTransactions()
+                }
+            } message: {
+                Text("This action cannot be undone.")
+            }
 
             ImportInstructionsCard()
         }
