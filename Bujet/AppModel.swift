@@ -14,9 +14,19 @@ final class AppModel {
     private let importService: any ImportServiceManual
     private let authClient: BackendAuthClient
     private let authService = TrueLayerAuthService()
+    
+    @ObservationIgnored
+    private let defaults: UserDefaults
+    
+    @ObservationIgnored
+    private let connectionStateKey = "app.connectionState"
 
     var selectedTab: AppTab = .home
-    var connectionState: BankConnectionState = .notConnected
+    var connectionState: BankConnectionState = .notConnected {
+        didSet {
+            persistConnectionState()
+        }
+    }
     var pastedAuthCode = ""
     var transactions: [Transaction] = []
     var isImporting = false
@@ -25,11 +35,15 @@ final class AppModel {
     init(
         transactionRepository: some TransactionRepository,
         importService: some ImportServiceManual,
-        authClient: BackendAuthClient
+        authClient: BackendAuthClient,
+        defaults: UserDefaults = .standard
     ) {
         self.transactionRepository = transactionRepository
         self.importService = importService
         self.authClient = authClient
+        self.defaults = defaults
+        
+        self.connectionState = Self.loadPersistedConnectionState(from: defaults)
     }
 
     func loadTransactions() async {
@@ -117,6 +131,64 @@ final class AppModel {
             connectionState = .notConnected
         } catch {
             alertMessage = error.localizedDescription
+        }
+    }
+    
+    func clearConnectionState() {
+        connectionState = .notConnected
+    }
+    
+    private func persistConnectionState() {
+        do {
+            let persisted = connectionState.persistedValue
+            let data = try JSONEncoder().encode(persisted)
+            defaults.set(data, forKey: connectionStateKey)
+        } catch {
+            print("Failed to persist connection states", error)
+        }
+    }
+    
+    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionState {
+        guard
+            let data = defaults.data(forKey: "app.connectionState"),
+            let persisted = try? JSONDecoder().decode(PersistedConnectionState.self, from: data)
+        else {
+            return .notConnected
+        }
+
+        return .fromPersisted(persisted)
+    }
+}
+
+enum PersistedConnectionState: Codable {
+    case notConnected
+    case connected(importedCount: Int)
+    case failed(String)
+}
+
+extension BankConnectionState {
+    var persistedValue: PersistedConnectionState {
+        switch self {
+        case .notConnected:
+            return .notConnected
+        case .connected(let importedCount):
+            return .connected(importedCount: importedCount)
+        case .failed(let message):
+            return .failed(message)
+        case .importing:
+            // Don't restore an in-flight import after relaunch
+            return .notConnected
+        }
+    }
+
+    static func fromPersisted(_ persisted: PersistedConnectionState) -> BankConnectionState {
+        switch persisted {
+        case .notConnected:
+            return .notConnected
+        case .connected(let importedCount):
+            return .connected(importedCount: importedCount)
+        case .failed(let message):
+            return .failed(message)
         }
     }
 }

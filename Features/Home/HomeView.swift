@@ -26,11 +26,11 @@ struct HomeView: View {
         }
 
         // TODO:
-        // When you have a dedicated failure flag in AppModel, uncomment / adapt this.
-        // Example:
-        // if appModel.didImportFailAfterConnection {
-        //     return .importFailed
-        // }
+//         When you have a dedicated failure flag in AppModel, uncomment / adapt this.
+//         Example:
+//         if appModel.didImportFailAfterConnection {
+//             return .importFailed
+//         }
 
         switch appModel.connectionState {
         case .connected:
