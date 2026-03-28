@@ -1,26 +1,19 @@
-//
-//  TransactionView.swift
-//  Bujet
-//
-//  Created by Zachary Beck on 18/03/2026.
-//
-
 import SwiftUI
 import Observation
 
 struct TransactionsView: View {
-    @Bindable var appModel: AppModel
+    let viewModel: TransactionsViewModel
 
     var body: some View {
         Group {
-            if appModel.transactions.isEmpty {
+            if viewModel.transactions.isEmpty {
                 ContentUnavailableView(
                     "No Transactions",
                     systemImage: "tray",
                     description: Text("Import transactions from the Home tab to see them here.")
                 )
             } else {
-                List(appModel.transactions) { transaction in
+                List(viewModel.transactions) { transaction in
                     TransactionRowView(transaction: transaction)
                 }
                 .listStyle(.plain)
@@ -28,10 +21,10 @@ struct TransactionsView: View {
         }
         .navigationTitle("Transactions")
         .task {
-            await appModel.loadTransactions()
+            await viewModel.loadTransactions()
         }
         .refreshable {
-            await appModel.loadTransactions()
+            await viewModel.refresh()
         }
     }
 }

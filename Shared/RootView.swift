@@ -6,53 +6,48 @@
 //
 
 import SwiftUI
-import Observation
 
 struct RootView: View {
     @Bindable var appModel: AppModel
 
     var body: some View {
         TabView(selection: $appModel.selectedTab) {
-            Tab("Home", systemImage: "house", value: .home) {
-                NavigationStack {
-                    HomeView(appModel: appModel)
-                }
+            NavigationStack {
+                HomeView(
+                    viewModel: appModel.homeViewModel,
+                    onImportSuccess: {
+                        appModel.selectedTab = .transactions
+                    }
+                )
             }
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+            .tag(AppTab.home)
             
-            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
-                NavigationStack {
-                    EmptyView()
-                }
+            NavigationStack {
+                Text("Insights")
             }
+            .tabItem {
+                Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .tag(AppTab.insights)
 
-            Tab("Transactions", systemImage: "pencil.and.list.clipboard", value: .transactions) {
-                NavigationStack {
-                    TransactionsView(appModel: appModel)
-                }
+            NavigationStack {
+                TransactionsView(viewModel: appModel.transactionsViewModel)
             }
-            
-            Tab("Settings", systemImage: "slider.horizontal.3", value: .settings) {
-                NavigationStack {
-                    EmptyView()
-                }
+            .tabItem {
+                Label("Transactions", systemImage: "pencil.and.list.clipboard")
             }
-        }
-        .task {
-            await appModel.loadTransactions()
-        }
-        .alert("Import Status", isPresented: alertIsPresented) { } message: {
-            Text(appModel.alertMessage ?? "Unknown message.")
-        }
-    }
+            .tag(AppTab.transactions)
 
-    private var alertIsPresented: Binding<Bool> {
-        Binding(
-            get: { appModel.alertMessage != nil },
-            set: { newValue in
-                if !newValue {
-                    appModel.alertMessage = nil
-                }
+            NavigationStack {
+                Text("Settings")
             }
-        )
+            .tabItem {
+                Label("Settings", systemImage: "gear")
+            }
+            .tag(AppTab.settings)
+        }
     }
 }

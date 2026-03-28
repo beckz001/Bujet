@@ -8,50 +8,23 @@
 import SwiftUI
 import Observation
 
-private enum HomeBannerState {
-    case connected
-    case disconnected
-    case dataPending
-    case importFailed
-}
-
 struct HomeView: View {
-    @Bindable var appModel: AppModel
+    let viewModel: HomeViewModel
+    let onImportSuccess: () -> Void
+
     @State private var showingClearAlert = false
     @State private var showingRetryPopup = false
 
-    private var bannerState: HomeBannerState {
-        if appModel.isImporting {
-            return .dataPending
-        }
-
-        // TODO:
-//         When you have a dedicated failure flag in AppModel, uncomment / adapt this.
-//         Example:
-//         if appModel.didImportFailAfterConnection {
-//             return .importFailed
-//         }
-
-        switch appModel.connectionState {
-        case .connected:
-            return .connected
-        default:
-            return .disconnected
-        }
-    }
-
     var body: some View {
+        let bannerState = viewModel.bannerState
+
         ZStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-
-                    // MARK: Connection bar
                     HomeConnectionBar(
-                        state: bannerState,
-                        action: handleConnectionBarTap
+                        state: bannerState
                     )
 
-                    // MARK: - Action cards
                     HStack(spacing: 16) {
                         HomeActionCard(
                             title: "Quick add\ntransaction",
@@ -63,24 +36,22 @@ struct HomeView: View {
                             title: "Connect to a\nbank account",
                             systemImage: "building.columns",
                             action: connectBankAccount,
-                            isDisabled: appModel.isImporting
+                            isDisabled: viewModel.isImporting
                         )
                     }
 
-                    // MARK: - Large content card (blank)
                     HomeGlassCard(minHeight: 180) {
                         VStack {
                             Text("Example of a large content card")
                         }
                     }
 
-                    // MARK: - Existing manual fallback card
                     HomeGlassCard {
                         VStack(alignment: .leading, spacing: 16) {
                             Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
                                 showingClearAlert = true
                             }
-                            .disabled(appModel.isImporting)
+                            .disabled(viewModel.isImporting)
                             .alert("Clear Imported Transactions?", isPresented: $showingClearAlert) {
                                 Button("Cancel", role: .cancel) { }
                                 Button("Clear", role: .destructive, action: clearTransactions)
@@ -114,36 +85,21 @@ struct HomeView: View {
         .navigationTitle("Home")
     }
 
-    // MARK: - Banner tap handling
-    private func handleConnectionBarTap() {
-        switch bannerState {
-        case .connected:
-            break
-
-        case .disconnected:
-            connectBankAccount()
-
-        case .dataPending:
-            break
-
-        case .importFailed:
-            showingRetryPopup = true
-        }
-    }
-
     private func quickAddTransaction() {
-        // Hook this up to your add-transaction flow when ready.
+        // Hook this up later
     }
 
     private func connectBankAccount() {
         Task {
-            await appModel.startTrueLayerFlow()
+            await viewModel.startTrueLayerFlow {
+                onImportSuccess()
+            }
         }
     }
 
     private func clearTransactions() {
         Task {
-            await appModel.clearTransactions()
+            await viewModel.clearTransactions()
         }
     }
 }
@@ -178,7 +134,6 @@ private struct HomeBackground: View {
 // MARK: - Top connection bar
 private struct HomeConnectionBar: View {
     let state: HomeBannerState
-    let action: () -> Void
 
     private var title: String {
         switch state {
@@ -189,7 +144,7 @@ private struct HomeConnectionBar: View {
         case .dataPending:
             return "Connecting"
         case .importFailed:
-            return "Connected"
+            return "Disconnected"
         }
     }
 
@@ -232,7 +187,7 @@ private struct HomeConnectionBar: View {
                 .scaleEffect(0.85)
 
         case .importFailed:
-            Image(systemName: "exclamationmark.circle")
+            Image(systemName: "network.slash")
                 .font(.system(size: 25, weight: .medium))
                 .foregroundStyle(.primary)
         }
