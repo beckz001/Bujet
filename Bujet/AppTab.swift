@@ -8,5 +8,7 @@ import Foundation
 
 enum AppTab: Hashable {
     case home
+    case insights
     case transactions
+    case settings
 }

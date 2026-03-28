@@ -6,6 +6,14 @@
 //
 import Foundation
 
+
 enum BackendConfiguration {
-    static let baseURL = URL(string: "http://127.0.0.1:3001")!
+    static var baseURL: URL {
+        #if targetEnvironment(simulator)
+        URL(string: "http://127.0.0.1:3001")!
+        #else
+        URL(string: "https://twannaing-unabating-floy.ngrok-free.dev")!
+        #endif
+    }
 }
+

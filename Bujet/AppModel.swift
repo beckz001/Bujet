@@ -11,7 +11,7 @@ import Observation
 @Observable
 final class AppModel {
     private let transactionRepository: any TransactionRepository
-    private let importService: any PhaseAImportService
+    private let importService: any ImportServiceManual
     private let authClient: BackendAuthClient
     private let authService = TrueLayerAuthService()
 
@@ -24,7 +24,7 @@ final class AppModel {
 
     init(
         transactionRepository: some TransactionRepository,
-        importService: some PhaseAImportService,
+        importService: some ImportServiceManual,
         authClient: BackendAuthClient
     ) {
         self.transactionRepository = transactionRepository
@@ -97,7 +97,7 @@ final class AppModel {
         connectionState = .importing
 
         do {
-            let importedTransactions = try await importService.importTransactions(using: trimmedCode)
+            let importedTransactions = try await importService.importTransactionsManually(using: trimmedCode)
             try await transactionRepository.replaceAll(with: importedTransactions)
             transactions = await transactionRepository.fetchAll()
             connectionState = .connected(importedCount: transactions.count)

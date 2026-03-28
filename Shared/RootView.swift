@@ -18,10 +18,22 @@ struct RootView: View {
                     HomeView(appModel: appModel)
                 }
             }
+            
+            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
+                NavigationStack {
+                    EmptyView()
+                }
+            }
 
-            Tab("Transactions", systemImage: "list.bullet.rectangle", value: .transactions) {
+            Tab("Transactions", systemImage: "pencil.and.list.clipboard", value: .transactions) {
                 NavigationStack {
                     TransactionsView(appModel: appModel)
+                }
+            }
+            
+            Tab("Settings", systemImage: "slider.horizontal.3", value: .settings) {
+                NavigationStack {
+                    EmptyView()
                 }
             }
         }

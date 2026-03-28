@@ -6,10 +6,10 @@
 //
 import Foundation
 
-struct BackendImportService: PhaseAImportService {
+struct BackendImportServiceManual: ImportServiceManual {
     let baseURL: URL
 
-    func importTransactions(using authCode: String) async throws -> [Transaction] {
+    func importTransactionsManually(using authCode: String) async throws -> [Transaction] {
         let trimmedCode = authCode.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedCode.isEmpty else {
