@@ -61,3 +61,22 @@ struct ImportResultResponse: Decodable {
     let importedCount: Int
     let transactions: [Transaction]
 }
+
+struct BackendErrorBody: Decodable {
+    let error: String
+    let message: String
+}
+
+enum BackendImportError: LocalizedError {
+    case invalidResponse
+    case serverError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            "The backend returned an invalid response."
+        case .serverError(let message):
+            message
+        }
+    }
+}

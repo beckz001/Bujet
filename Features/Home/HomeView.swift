@@ -75,25 +75,8 @@ struct HomeView: View {
                     }
 
                     // MARK: - Existing manual fallback card
-                    HomeGlassCard(minHeight: 240) {
+                    HomeGlassCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Manual fallback")
-                                .font(.headline)
-                                .bold()
-
-                            TextField("Paste authentication code", text: $appModel.pastedAuthCode, axis: .vertical)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .background(.white.opacity(0.55), in: .rect(cornerRadius: 18))
-
-                            Button("Import Transactions Manually", systemImage: "arrow.down.circle", action: importTransactionsManually)
-                                .disabled(
-                                    appModel.isImporting ||
-                                    appModel.pastedAuthCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                )
-
                             Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
                                 showingClearAlert = true
                             }
@@ -104,8 +87,6 @@ struct HomeView: View {
                             } message: {
                                 Text("This action cannot be undone.")
                             }
-
-                            ImportInstructionsCard()
                         }
                     }
                 }
@@ -157,12 +138,6 @@ struct HomeView: View {
     private func connectBankAccount() {
         Task {
             await appModel.startTrueLayerFlow()
-        }
-    }
-
-    private func importTransactionsManually() {
-        Task {
-            await appModel.importTransactionsFromPastedCode()
         }
     }
 

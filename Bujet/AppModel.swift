@@ -11,7 +11,6 @@ import Observation
 @Observable
 final class AppModel {
     private let transactionRepository: any TransactionRepository
-    private let importService: any ImportServiceManual
     private let authClient: BackendAuthClient
     private let authService = TrueLayerAuthService()
     
@@ -34,12 +33,10 @@ final class AppModel {
 
     init(
         transactionRepository: some TransactionRepository,
-        importService: some ImportServiceManual,
         authClient: BackendAuthClient,
         defaults: UserDefaults = .standard
     ) {
         self.transactionRepository = transactionRepository
-        self.importService = importService
         self.authClient = authClient
         self.defaults = defaults
         
@@ -95,33 +92,6 @@ final class AppModel {
             alertMessage = error.localizedDescription
             isImporting = false
         }
-    }
-
-    // Keep this temporarily as a debug/manual fallback.
-    func importTransactionsFromPastedCode() async {
-        let trimmedCode = pastedAuthCode.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmedCode.isEmpty else {
-            alertMessage = "Paste the TrueLayer authentication code first."
-            connectionState = .failed("No authentication code was provided.")
-            return
-        }
-
-        isImporting = true
-        connectionState = .importing
-
-        do {
-            let importedTransactions = try await importService.importTransactionsManually(using: trimmedCode)
-            try await transactionRepository.replaceAll(with: importedTransactions)
-            transactions = await transactionRepository.fetchAll()
-            connectionState = .connected(importedCount: transactions.count)
-            pastedAuthCode = ""
-        } catch {
-            connectionState = .failed(error.localizedDescription)
-            alertMessage = error.localizedDescription
-        }
-
-        isImporting = false
     }
 
     func clearTransactions() async {
