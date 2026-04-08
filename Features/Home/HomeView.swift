@@ -13,9 +13,10 @@ struct HomeView: View {
     let onImportSuccess: () -> Void
 
     @State private var showingClearAlert = false
-    @State private var showingRetryPopup = false
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+        
         let bannerState = viewModel.bannerState
 
         ZStack {
@@ -69,20 +70,26 @@ struct HomeView: View {
             .background {
                 HomeBackground()
             }
-
-            if showingRetryPopup {
-                RetryImportOverlay(
-                    onCancel: { showingRetryPopup = false },
-                    onRetry: {
-                        showingRetryPopup = false
-                        connectBankAccount()
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(10)
-            }
         }
         .navigationTitle("Home")
+        .alert(item: $viewModel.connectionAlert) { alert in
+            switch alert {
+            case .serverConnection(let message):
+                return Alert(
+                    title: Text("Connection Error"),
+                    message: Text(message),
+                    dismissButton: .default(Text("OK"))
+                )
+            case .connectionCancelled:
+                return Alert(
+                    title: Text("Connection Cancelled"),
+                    message: Text("Bank connection cancelled, no data was sent to the server."),
+                    dismissButton: .default(Text("OK")) {
+                        viewModel.clearErrorAlert()
+                    }
+                )
+            }
+        }
     }
 
     private func quickAddTransaction() {
@@ -131,7 +138,7 @@ private struct HomeBackground: View {
     }
 }
 
-// MARK: - Top connection bar
+// MARK: - Connection bar
 private struct HomeConnectionBar: View {
     let state: ConnectionStateModel
 
@@ -194,6 +201,7 @@ private struct HomeConnectionBar: View {
     }
 }
 
+// MARK: Action Card
 private struct HomeActionCard: View {
     let title: String
     let systemImage: String
@@ -222,6 +230,7 @@ private struct HomeActionCard: View {
     }
 }
 
+// MARK: Glass Card
 private struct HomeGlassCard<Content: View>: View {
     let minHeight: CGFloat?
     @ViewBuilder let content: Content
@@ -238,54 +247,5 @@ private struct HomeGlassCard<Content: View>: View {
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
         .padding(20)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
-    }
-}
-
-// MARK: - Retry popup
-private struct RetryImportOverlay: View {
-    let onCancel: () -> Void
-    let onRetry: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.14)
-                .ignoresSafeArea()
-
-            VStack(spacing: 22) {
-                Text("Connected but data not imported, tap to try again")
-                    .font(.system(size: 18, weight: .medium))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.primary)
-
-                HStack(spacing: 12) {
-                    Button(action: onCancel) {
-                        Text("Cancel")
-                            .font(.system(size: 15, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
-                            .background(Color.black.opacity(0.08), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.primary)
-
-                    Button(action: onRetry) {
-                        Text("Try again")
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
-                            .background(Color.blue, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white)
-                }
-            }
-            .padding(20)
-            .frame(width: 270)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(.systemGray6))
-            )
-            .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
-        }
     }
 }

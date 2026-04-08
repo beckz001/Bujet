@@ -16,8 +16,8 @@ final class HomeViewModel {
     private let authService = TrueLayerAuthService()
     private let connectionStore: BankConnectionStateStore
 
-    var pastedAuthCode = ""
     var alertMessage: String?
+    var connectionAlert: ConnectionAlert?
 
     init(
         transactionRepository: some TransactionRepository,
@@ -76,14 +76,12 @@ final class HomeViewModel {
                         onImportSuccess?()
 
                     } catch {
-                        self.connectionStore.connectionState = .failed(error.localizedDescription)
-                        self.alertMessage = error.localizedDescription
+                        self.presentUserDismissError()
                     }
                 }
             }
         } catch {
-            connectionStore.connectionState = .failed(error.localizedDescription)
-            alertMessage = error.localizedDescription
+            presentServerConnectionError(error)
         }
     }
 
@@ -98,5 +96,44 @@ final class HomeViewModel {
 
     func clearConnectionState() {
         connectionStore.reset()
+    }
+    
+    func presentServerConnectionError(_ error: Error) {
+        let fullError = error.localizedDescription
+
+        connectionStore.connectionState = .failed(fullError)
+        print("Connection error: \(fullError)")
+
+        #if DEBUG
+        connectionAlert = .serverConnection(message: fullError)
+        #else
+        connectionAlert = .serverConnection(
+            message: "Unable to connect to the server. Please try again later."
+        )
+        #endif
+    }
+
+    func presentUserDismissError() {
+        connectionAlert = .connectionCancelled
+    }
+    
+    func clearErrorAlert() {
+        connectionAlert = nil
+        alertMessage = nil
+        connectionStore.reset()
+    }
+
+    enum ConnectionAlert: Identifiable, Equatable {
+        case serverConnection(message: String)
+        case connectionCancelled
+
+        var id: String {
+            switch self {
+            case .serverConnection(let message):
+                return "serverConnection-\(message)"
+            case .connectionCancelled:
+                return "connectionCancelled"
+            }
+        }
     }
 }
