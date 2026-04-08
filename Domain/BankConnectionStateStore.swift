@@ -10,14 +10,14 @@ import Observation
 
 @MainActor
 @Observable
-final class ConnectionStateStore {
+final class BankConnectionStateStore {
     @ObservationIgnored
     private let defaults: UserDefaults
 
     @ObservationIgnored
     private static let connectionStateKey = "app.connectionState"
 
-    var connectionState: BankConnectionState = .notConnected {
+    var connectionState: BankConnectionStateModel = .notConnected {
         didSet {
             persistConnectionStateIfNeeded()
         }
@@ -35,7 +35,7 @@ final class ConnectionStateStore {
         return false
     }
 
-    var bannerState: HomeBannerState {
+    var bannerState: ConnectionStateModel {
         switch connectionState {
         case .connected:
             return .connected
@@ -68,7 +68,7 @@ final class ConnectionStateStore {
         }
     }
 
-    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionState {
+    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionStateModel {
         guard
             let data = defaults.data(forKey: connectionStateKey),
             let persisted = try? JSONDecoder().decode(PersistedConnectionState.self, from: data)

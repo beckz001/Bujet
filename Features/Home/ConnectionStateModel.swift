@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum HomeBannerState {
+enum ConnectionStateModel {
     case connected
     case disconnected
     case dataPending

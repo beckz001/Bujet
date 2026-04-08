@@ -13,7 +13,7 @@ enum PersistedConnectionState: Codable {
     case failed(String)
 }
 
-extension BankConnectionState {
+extension BankConnectionStateModel {
     /// Only stable states should be persisted.
     var persistedValue: PersistedConnectionState? {
         switch self {
@@ -29,7 +29,7 @@ extension BankConnectionState {
         }
     }
 
-    static func fromPersisted(_ persisted: PersistedConnectionState) -> BankConnectionState {
+    static func fromPersisted(_ persisted: PersistedConnectionState) -> BankConnectionStateModel {
         switch persisted {
         case .notConnected:
             return .notConnected

@@ -14,7 +14,7 @@ final class HomeViewModel {
     private let transactionRepository: any TransactionRepository
     private let authClient: BackendAuthClient
     private let authService = TrueLayerAuthService()
-    private let connectionStore: ConnectionStateStore
+    private let connectionStore: BankConnectionStateStore
 
     var pastedAuthCode = ""
     var alertMessage: String?
@@ -22,18 +22,18 @@ final class HomeViewModel {
     init(
         transactionRepository: some TransactionRepository,
         authClient: BackendAuthClient,
-        connectionStore: ConnectionStateStore
+        connectionStore: BankConnectionStateStore
     ) {
         self.transactionRepository = transactionRepository
         self.authClient = authClient
         self.connectionStore = connectionStore
     }
 
-    var connectionState: BankConnectionState {
+    var connectionState: BankConnectionStateModel {
         connectionStore.connectionState
     }
 
-    var bannerState: HomeBannerState {
+    var bannerState: ConnectionStateModel {
         connectionStore.bannerState
     }
 

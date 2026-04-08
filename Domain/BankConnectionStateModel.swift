@@ -6,7 +6,7 @@
 //
 import Foundation
 
-enum BankConnectionState: Equatable {
+enum BankConnectionStateModel: Equatable {
     case notConnected
     case importing
     case connected(importedCount: Int)

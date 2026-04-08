@@ -5,9 +5,9 @@ import Observation
 @Observable
 final class AppModel {
     @ObservationIgnored
-    private let connectionStore: ConnectionStateStore
+    private let connectionStore: BankConnectionStateStore
 
-    var selectedTab: AppTab = .home
+    var selectedTab: TabModel = .home
 
     let homeViewModel: HomeViewModel
     let transactionsViewModel: TransactionsViewModel
@@ -17,7 +17,7 @@ final class AppModel {
         authClient: BackendAuthClient,
         defaults: UserDefaults = .standard
     ) {
-        let connectionStore = ConnectionStateStore(defaults: defaults)
+        let connectionStore = BankConnectionStateStore(defaults: defaults)
         self.connectionStore = connectionStore
 
         self.homeViewModel = HomeViewModel(

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct RootView: View {
+struct tabView: View {
     @Bindable var appModel: AppModel
 
     var body: some View {
@@ -23,7 +23,7 @@ struct RootView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            .tag(AppTab.home)
+            .tag(TabModel.home)
             
             NavigationStack {
                 Text("Insights")
@@ -31,7 +31,7 @@ struct RootView: View {
             .tabItem {
                 Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
             }
-            .tag(AppTab.insights)
+            .tag(TabModel.insights)
 
             NavigationStack {
                 TransactionsView(viewModel: appModel.transactionsViewModel)
@@ -39,7 +39,7 @@ struct RootView: View {
             .tabItem {
                 Label("Transactions", systemImage: "pencil.and.list.clipboard")
             }
-            .tag(AppTab.transactions)
+            .tag(TabModel.transactions)
 
             NavigationStack {
                 Text("Settings")
@@ -47,7 +47,7 @@ struct RootView: View {
             .tabItem {
                 Label("Settings", systemImage: "gear")
             }
-            .tag(AppTab.settings)
+            .tag(TabModel.settings)
         }
     }
 }

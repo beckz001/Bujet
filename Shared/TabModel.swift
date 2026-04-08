@@ -6,7 +6,7 @@
 //
 import Foundation
 
-enum AppTab: Hashable {
+enum TabModel: Hashable {
     case home
     case insights
     case transactions

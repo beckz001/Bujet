@@ -133,7 +133,7 @@ private struct HomeBackground: View {
 
 // MARK: - Top connection bar
 private struct HomeConnectionBar: View {
-    let state: HomeBannerState
+    let state: ConnectionStateModel
 
     private var title: String {
         switch state {
