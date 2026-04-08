@@ -37,7 +37,7 @@ struct HomeView: View {
                             title: "Connect to a\nbank account",
                             systemImage: "building.columns",
                             action: connectBankAccount,
-                            isDisabled: viewModel.isImporting
+                            isDisabled: viewModel.isImporting || viewModel.bannerState == .connected
                         )
                     }
 
@@ -84,6 +84,14 @@ struct HomeView: View {
                 return Alert(
                     title: Text("Connection Cancelled"),
                     message: Text("Bank connection cancelled, no data was sent to the server."),
+                    dismissButton: .default(Text("OK")) {
+                        viewModel.clearErrorAlert()
+                    }
+                )
+            case .dataAPIError(let title, let message):
+                return Alert(
+                    title: Text(title),
+                    message: Text(message),
                     dismissButton: .default(Text("OK")) {
                         viewModel.clearErrorAlert()
                     }

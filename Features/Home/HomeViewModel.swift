@@ -76,7 +76,7 @@ final class HomeViewModel {
                         onImportSuccess?()
 
                     } catch {
-                        self.presentUserDismissError()
+                        self.presentImportFlowError(error)
                     }
                 }
             }
@@ -113,7 +113,20 @@ final class HomeViewModel {
         #endif
     }
 
-    func presentUserDismissError() {
+    func presentImportFlowError(_ error: Error) {
+        #if DEBUG
+        print("Import/auth error: \(error.localizedDescription)")
+        #endif
+
+        if let payload = TrueLayerAPIErrorParser.parse(from: error) {
+            connectionStore.connectionState = .failed(payload.errorDescription)
+            connectionAlert = .dataAPIError(
+                title: payload.error.formattedErrorAlertTitle,
+                message: payload.errorDescription
+            )
+            return
+        }
+
         connectionAlert = .connectionCancelled
     }
     
@@ -126,6 +139,7 @@ final class HomeViewModel {
     enum ConnectionAlert: Identifiable, Equatable {
         case serverConnection(message: String)
         case connectionCancelled
+        case dataAPIError(title: String, message: String)
 
         var id: String {
             switch self {
@@ -133,6 +147,8 @@ final class HomeViewModel {
                 return "serverConnection-\(message)"
             case .connectionCancelled:
                 return "connectionCancelled"
+            case .dataAPIError(let title, let message):
+                return "dataAPIError-\(title)-\(message)"
             }
         }
     }
