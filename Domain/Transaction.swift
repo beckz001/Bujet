@@ -8,7 +8,7 @@ import Foundation
 
 struct Transaction: Identifiable, Codable, Hashable {
     let id: String
-    let bookedAt: Date
+    let date: Date
     let description: String
     let merchantName: String
     let amount: Double

@@ -20,7 +20,7 @@ struct TransactionRowView: View {
                 .foregroundStyle(.secondary)
 
             HStack {
-                Text(transaction.bookedAt, format: .dateTime.day().month().year())
+                Text(transaction.date, format: .dateTime.day().month().year())
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
