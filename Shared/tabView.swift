@@ -16,6 +16,9 @@ struct tabView: View {
                 HomeView(
                     viewModel: appModel.homeViewModel,
                     onImportSuccess: {
+                        Task {
+                            await appModel.transactionsViewModel.refresh()
+                        }
                         appModel.selectedTab = .transactions
                     }
                 )
@@ -24,7 +27,7 @@ struct tabView: View {
                 Label("Home", systemImage: "house")
             }
             .tag(TabModel.home)
-            
+
             NavigationStack {
                 Text("Insights")
             }
@@ -51,3 +54,4 @@ struct tabView: View {
         }
     }
 }
+

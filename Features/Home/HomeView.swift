@@ -15,8 +15,7 @@ struct HomeView: View {
     @State private var showingClearAlert = false
 
     var body: some View {
-        @Bindable var viewModel = viewModel
-        
+        @Bindable var bindableViewModel = viewModel
         let bannerState = viewModel.bannerState
 
         ZStack {
@@ -72,7 +71,7 @@ struct HomeView: View {
             }
         }
         .navigationTitle("Home")
-        .alert(item: $viewModel.connectionAlert) { alert in
+        .alert(item: $bindableViewModel.connectionAlert) { alert in
             switch alert {
             case .serverConnection(let message):
                 return Alert(
@@ -80,6 +79,7 @@ struct HomeView: View {
                     message: Text(message),
                     dismissButton: .default(Text("OK"))
                 )
+
             case .connectionCancelled:
                 return Alert(
                     title: Text("Connection Cancelled"),
@@ -88,6 +88,7 @@ struct HomeView: View {
                         viewModel.clearErrorAlert()
                     }
                 )
+
             case .dataAPIError(let title, let message):
                 return Alert(
                     title: Text(title),
@@ -95,6 +96,39 @@ struct HomeView: View {
                     dismissButton: .default(Text("OK")) {
                         viewModel.clearErrorAlert()
                     }
+                )
+            }
+        }
+        .sheet(
+            item: $bindableViewModel.activeImportSheet,
+            onDismiss: {
+                defer { viewModel.importDismissReason = nil }
+
+                switch viewModel.importDismissReason {
+                case .commit:
+                    viewModel.clearPendingImportState()
+
+                case .cancel, .none:
+                    viewModel.clearPendingImportState()
+                    viewModel.clearConnectionState()
+
+                case .switching:
+                    break
+                }
+            }
+
+        ) { sheet in
+            switch sheet {
+            case .options:
+                TransactionImportOptionsSheet(
+                    viewModel: viewModel,
+                    onImportSuccess: onImportSuccess
+                )
+
+            case .dateRange:
+                TransactionImportReviewSheet(
+                    viewModel: viewModel,
+                    onImportSuccess: onImportSuccess
                 )
             }
         }
@@ -106,9 +140,7 @@ struct HomeView: View {
 
     private func connectBankAccount() {
         Task {
-            await viewModel.startTrueLayerFlow {
-                onImportSuccess()
-            }
+            await viewModel.startTrueLayerFlow(onImportSuccess: onImportSuccess)
         }
     }
 

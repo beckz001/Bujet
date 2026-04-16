@@ -12,9 +12,7 @@ import Observation
 @Observable
 final class TransactionsViewModel {
     private let transactionRepository: any TransactionRepository
-
     var transactions: [Transaction] = []
-    //var alertMessage: String?
 
     init(transactionRepository: some TransactionRepository) {
         self.transactionRepository = transactionRepository
