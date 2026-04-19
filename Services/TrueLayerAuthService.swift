@@ -11,33 +11,14 @@ import AuthenticationServices
 
 @MainActor
 final class TrueLayerAuthService: NSObject, ASWebAuthenticationPresentationContextProviding {
-    private var session: ASWebAuthenticationSession?
-
-    func start(
-        authURL: URL,
-        completion: @escaping @MainActor (Result<URL, Error>) -> Void
-    ) {
+    func authenticate(authURL: URL) async throws -> URL {
         let session = ASWebAuthenticationSession(
             url: authURL,
             callbackURLScheme: "bujet"
-        ) { callbackURL, error in
-            if let error {
-                completion(.failure(error))
-                return
-            }
-
-            guard let callbackURL else {
-                completion(.failure(AuthFlowError.missingCallbackURL))
-                return
-            }
-
-            completion(.success(callbackURL))
-        }
-
+        )
         session.presentationContextProvider = self
         session.prefersEphemeralWebBrowserSession = false
-        self.session = session
-        session.start()
+        return try await session.start()
     }
 
 
