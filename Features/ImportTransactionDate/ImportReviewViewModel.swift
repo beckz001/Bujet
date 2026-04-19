@@ -45,12 +45,15 @@ final class ImportReviewViewModel {
         flow.isFinalising
     }
 
-    var currentCalendarSelectionDate: Date {
-        flow.currentCalendarSelectionDate
-    }
-
     var selectableCalendarRange: ClosedRange<Date> {
         flow.selectableCalendarRange
+    }
+
+    /// Settable binding source for `ImportRangeCalendarView`. Reads the
+    /// currently-editing boundary's date; writes delegate back to the flow.
+    var calendarDate: Date {
+        get { flow.currentCalendarSelectionDate }
+        set { flow.setDate(newValue) }
     }
 
     // MARK: - Actions

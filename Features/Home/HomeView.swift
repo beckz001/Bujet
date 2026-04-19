@@ -100,37 +100,12 @@ struct HomeView: View {
             }
         }
         .sheet(
-            item: $bindableViewModel.activeImportSheet,
+            item: $bindableViewModel.activeImportFlow,
             onDismiss: {
-                defer { viewModel.importDismissReason = nil }
-
-                switch viewModel.importDismissReason {
-                case .commit:
-                    viewModel.clearPendingImportState()
-
-                case .cancel, .none:
-                    viewModel.clearPendingImportState()
-                    viewModel.clearConnectionState()
-
-                case .switching:
-                    break
-                }
+                viewModel.handleImportSheetDismissal()
             }
-
-        ) { sheet in
-            switch sheet {
-            case .options:
-                TransactionImportOptionsSheet(
-                    viewModel: viewModel,
-                    onImportSuccess: onImportSuccess
-                )
-
-            case .dateRange:
-                TransactionImportReviewSheet(
-                    viewModel: viewModel,
-                    onImportSuccess: onImportSuccess
-                )
-            }
+        ) { flow in
+            ImportFlowContainer(flow: flow)
         }
     }
 
