@@ -17,7 +17,7 @@ final class BankConnectionStateStore {
     @ObservationIgnored
     private static let connectionStateKey = "app.connectionState"
 
-    var connectionState: BankConnectionStateModel = .notConnected {
+    var connectionState: BankConnectionState = .notConnected {
         didSet {
             persistConnectionStateIfNeeded()
         }
@@ -35,7 +35,7 @@ final class BankConnectionStateStore {
         return false
     }
 
-    var bannerState: ConnectionStateModel {
+    var bannerState: ConnectionBannerState {
         switch connectionState {
         case .connected:
             return .connected
@@ -68,7 +68,7 @@ final class BankConnectionStateStore {
         }
     }
 
-    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionStateModel {
+    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionState {
         guard
             let data = defaults.data(forKey: connectionStateKey),
             let persisted = try? JSONDecoder().decode(PersistedConnectionState.self, from: data)

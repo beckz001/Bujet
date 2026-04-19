@@ -115,7 +115,7 @@ struct HomeView: View {
 
     private func connectBankAccount() {
         Task {
-            await viewModel.startTrueLayerFlow(onImportSuccess: onImportSuccess)
+            await viewModel.startBankConnection(onImportSuccess: onImportSuccess)
         }
     }
 
@@ -155,7 +155,7 @@ private struct HomeBackground: View {
 
 // MARK: - Connection bar
 private struct HomeConnectionBar: View {
-    let state: ConnectionStateModel
+    let state: ConnectionBannerState
 
     private var title: String {
         switch state {
