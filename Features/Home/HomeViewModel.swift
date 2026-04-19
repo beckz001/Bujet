@@ -23,7 +23,7 @@ final class HomeViewModel {
     /// Drives the import sheet presentation from `HomeView`.
     var activeImportFlow: TransactionImportFlow?
 
-    /// Caller-supplied success hook from `startTrueLayerFlow`, fired once the
+    /// Caller-supplied success hook from `startBankConnection`, fired once the
     /// active import flow commits successfully.
     @ObservationIgnored private var onImportSuccess: (() -> Void)?
 
@@ -39,11 +39,11 @@ final class HomeViewModel {
 
     // MARK: - Derived connection state
 
-    var connectionState: BankConnectionStateModel {
+    var connectionState: BankConnectionState {
         connectionStore.connectionState
     }
 
-    var bannerState: ConnectionStateModel {
+    var bannerState: ConnectionBannerState {
         connectionStore.bannerState
     }
 
@@ -53,7 +53,7 @@ final class HomeViewModel {
 
     // MARK: - Bank connection + import flow
 
-    func startTrueLayerFlow(onImportSuccess: (() -> Void)? = nil) async {
+    func startBankConnection(onImportSuccess: (() -> Void)? = nil) async {
         alertMessage = nil
         activeImportFlow = nil
         self.onImportSuccess = onImportSuccess

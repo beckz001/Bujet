@@ -1,5 +1,5 @@
 //
-//  HomeBannerState.swift
+//  ConnectionBannerState.swift
 //  Bujet
 //
 //  Created by Zachary Beck on 28/03/2026.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ConnectionStateModel {
+enum ConnectionBannerState {
     case connected
     case disconnected
     case dataPending
