@@ -18,11 +18,12 @@ final class AppModel {
         defaults: UserDefaults = .standard
     ) {
         let connectionStore = BankConnectionStateStore(defaults: defaults)
+        let connector = BankAccountConnector(authClient: authClient)
         self.connectionStore = connectionStore
 
         self.homeViewModel = HomeViewModel(
             transactionRepository: transactionRepository,
-            authClient: authClient,
+            connector: connector,
             connectionStore: connectionStore
         )
 

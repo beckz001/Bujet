@@ -12,8 +12,7 @@ import Observation
 @Observable
 final class HomeViewModel {
     @ObservationIgnored private let transactionRepository: any TransactionRepository
-    @ObservationIgnored private let authClient: BackendAuthClient
-    @ObservationIgnored private let authService = TrueLayerAuthService()
+    @ObservationIgnored private let connector: any BankConnecting
     @ObservationIgnored private let connectionStore: BankConnectionStateStore
 
     var alertMessage: String?
@@ -43,11 +42,11 @@ final class HomeViewModel {
 
     init(
         transactionRepository: some TransactionRepository,
-        authClient: BackendAuthClient,
+        connector: any BankConnecting,
         connectionStore: BankConnectionStateStore
     ) {
         self.transactionRepository = transactionRepository
-        self.authClient = authClient
+        self.connector = connector
         self.connectionStore = connectionStore
     }
 
@@ -74,47 +73,19 @@ final class HomeViewModel {
         connectionStore.connectionState = .importing
 
         do {
-            let startResponse = try await authClient.startAuth()
+            let transactions = try await connector.connect()
 
-            authService.start(authURL: startResponse.authURL) { [weak self] result in
-                guard let self else { return }
-
-                Task { @MainActor in
-                    do {
-                        let callbackURL = try result.get()
-
-                        guard
-                            let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-                            let sessionID = components.queryItems?.first(where: { $0.name == "session_id" })?.value,
-                            let status = components.queryItems?.first(where: { $0.name == "status" })?.value
-                        else {
-                            throw AuthFlowError.invalidCallback
-                        }
-
-                        if status == "failed" {
-                            let message = components.queryItems?.first(where: { $0.name == "message" })?.value
-                            throw BackendImportError.serverError(message ?? "Authentication failed.")
-                        }
-
-                        let importResult = try await self.authClient.fetchImportResult(sessionID: sessionID)
-                        let importedTransactions = importResult.transactions
-
-                        if importedTransactions.isEmpty {
-                            try await self.transactionRepository.replaceAll(with: [])
-                            self.connectionStore.connectionState = .connected(importedCount: 0)
-                            self.onImportSuccess?()
-                            self.onImportSuccess = nil
-                            return
-                        }
-
-                        self.beginImport(with: importedTransactions)
-                    } catch {
-                        self.presentImportFlowError(error)
-                    }
-                }
+            if transactions.isEmpty {
+                try await transactionRepository.replaceAll(with: [])
+                connectionStore.connectionState = .connected(importedCount: 0)
+                self.onImportSuccess?()
+                self.onImportSuccess = nil
+                return
             }
+
+            beginImport(with: transactions)
         } catch {
-            presentServerConnectionError(error)
+            presentConnectionError(error)
         }
     }
 
@@ -189,29 +160,9 @@ final class HomeViewModel {
         connectionStore.reset()
     }
 
-    private func presentServerConnectionError(_ error: Error) {
+    private func presentConnectionError(_ error: Error) {
         activeImportFlow = nil
         onImportSuccess = nil
-
-        let fullError = error.localizedDescription
-        connectionStore.connectionState = .failed(fullError)
-
-        #if DEBUG
-        connectionAlert = .serverConnection(message: fullError)
-        #else
-        connectionAlert = .serverConnection(
-            message: "Unable to connect to the server. Please try again later."
-        )
-        #endif
-    }
-
-    private func presentImportFlowError(_ error: Error) {
-        activeImportFlow = nil
-        onImportSuccess = nil
-
-        #if DEBUG
-        print("Import/auth error: \(error.localizedDescription)")
-        #endif
 
         if let payload = TrueLayerAPIErrorParser.parse(from: error) {
             connectionStore.connectionState = .failed(payload.errorDescription)
@@ -222,7 +173,21 @@ final class HomeViewModel {
             return
         }
 
-        connectionAlert = .connectionCancelled
+        if error is BankConnectionError {
+            connectionAlert = .connectionCancelled
+            return
+        }
+
+        let message = error.localizedDescription
+        connectionStore.connectionState = .failed(message)
+
+        #if DEBUG
+        connectionAlert = .serverConnection(message: message)
+        #else
+        connectionAlert = .serverConnection(
+            message: "Unable to connect to the server. Please try again later."
+        )
+        #endif
     }
 
     func clearErrorAlert() {

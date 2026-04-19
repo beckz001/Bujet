@@ -39,11 +39,7 @@ final class BankAccountConnector: BankConnecting {
 
         let callbackURL: URL
         do {
-            callbackURL = try await withCheckedThrowingContinuation { continuation in
-                authService.start(authURL: startResponse.authURL) { result in
-                    continuation.resume(with: result)
-                }
-            }
+            callbackURL = try await authService.authenticate(authURL: startResponse.authURL)
         } catch {
             if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
                 throw BankConnectionError.userCancelled
