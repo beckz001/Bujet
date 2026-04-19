@@ -23,6 +23,20 @@ final class HomeViewModel {
     /// Drives the import sheet presentation from `HomeView`.
     var activeImportFlow: TransactionImportFlow?
 
+    /// Binding source for the import sheet. Keying on `Step` (not the flow) makes
+    /// SwiftUI dismiss + re-present between options and review, giving the
+    /// natural slide-down / slide-up transition.
+    var presentedImportSheet: TransactionImportFlow.Step? {
+        get { activeImportFlow?.step }
+        set {
+            if let newValue {
+                activeImportFlow?.step = newValue
+            } else {
+                activeImportFlow = nil
+            }
+        }
+    }
+
     /// Caller-supplied success hook from `startBankConnection`, fired once the
     /// active import flow commits successfully.
     @ObservationIgnored private var onImportSuccess: (() -> Void)?
@@ -147,13 +161,16 @@ final class HomeViewModel {
         connectionAlert = .serverConnection(message: message)
     }
 
-    /// Called from `HomeView`'s sheet `onDismiss`. Handles the swipe-to-dismiss
-    /// case where no commit/cancel callback has fired yet.
+    /// Called from `HomeView`'s sheet `onDismiss`. Fires on both real dismissals
+    /// (swipe-down, cancel) and on step transitions where SwiftUI dismisses the
+    /// old sheet before presenting the new one. Guard so step changes don't get
+    /// treated as cancellations.
     func handleImportSheetDismissal() {
+        guard activeImportFlow == nil else { return }
+
         if case .importing = connectionStore.connectionState {
             connectionStore.reset()
         }
-        activeImportFlow = nil
         onImportSuccess = nil
     }
 

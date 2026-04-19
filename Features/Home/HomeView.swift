@@ -100,12 +100,23 @@ struct HomeView: View {
             }
         }
         .sheet(
-            item: $bindableViewModel.activeImportFlow,
+            item: $bindableViewModel.presentedImportSheet,
             onDismiss: {
                 viewModel.handleImportSheetDismissal()
             }
-        ) { flow in
-            ImportFlowContainer(flow: flow)
+        ) { step in
+            if let flow = viewModel.activeImportFlow {
+                switch step {
+                case .options:
+                    TransactionImportOptionsSheet(
+                        viewModel: ImportOptionsViewModel(flow: flow)
+                    )
+                case .review:
+                    TransactionImportReviewSheet(
+                        viewModel: ImportReviewViewModel(flow: flow)
+                    )
+                }
+            }
         }
     }
 
