@@ -6,34 +6,11 @@
 //
 
 import SwiftUI
-import Observation
 
 struct TransactionImportReviewSheet: View {
-    let viewModel: HomeViewModel
-    let onImportSuccess: () -> Void
-
-    @State private var displayedRange: ImportDateRange
-    @State private var session: TransactionImportSession
-    
-    init(viewModel: HomeViewModel, onImportSuccess: @escaping () -> Void) {
-        guard
-            let session = viewModel.pendingImportSession,
-            let range = viewModel.selectedImportRange
-        else {
-            preconditionFailure("TransactionImportReviewSheet presented without import state")
-        }
-
-        self.viewModel = viewModel
-        self.onImportSuccess = onImportSuccess
-        _session = State(initialValue: session)
-        _displayedRange = State(initialValue: range)
-    }
+    @Bindable var viewModel: ImportReviewViewModel
 
     var body: some View {
-        @Bindable var bindableViewModel = viewModel
-
-        // These are guaranteed by presentation logic
-
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
 
@@ -43,12 +20,12 @@ struct TransactionImportReviewSheet: View {
                         .font(.headline)
 
                     Text(
-                        "\(session.availableRange.lowerBound.formatted(date: .abbreviated, time: .omitted)) – " +
-                        "\(session.availableRange.upperBound.formatted(date: .abbreviated, time: .omitted))"
+                        "\(viewModel.availableRange.lowerBound.formatted(date: .abbreviated, time: .omitted)) – " +
+                        "\(viewModel.availableRange.upperBound.formatted(date: .abbreviated, time: .omitted))"
                     )
-                    Text("\(viewModel.selectedImportPreviewCount) transactions in selected range")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text("\(viewModel.previewCount) transactions in selected range")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -64,31 +41,27 @@ struct TransactionImportReviewSheet: View {
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: 12) {
-                        let selectedRange = displayedRange
                         RangeBoundaryCard(
                             title: "Start Date",
-                            date: selectedRange.startDate,
-                            isActive: viewModel.activeImportBoundary == .start
+                            date: viewModel.selectedRange.startDate,
+                            isActive: viewModel.activeBoundary == .start
                         ) {
-                            viewModel.setActiveImportBoundary(.start)
+                            viewModel.setBoundary(.start)
                         }
 
                         RangeBoundaryCard(
                             title: "End Date",
-                            date: selectedRange.endDate,
-                            isActive: viewModel.activeImportBoundary == .end
+                            date: viewModel.selectedRange.endDate,
+                            isActive: viewModel.activeBoundary == .end
                         ) {
-                            viewModel.setActiveImportBoundary(.end)
+                            viewModel.setBoundary(.end)
                         }
                     }
                 }
 
                 // MARK: - Calendar
                 ImportRangeCalendarView(
-                    selectedDate: Binding(
-                        get: { viewModel.currentCalendarSelectionDate },
-                        set: { viewModel.setCalendarSelectionDate($0) }
-                    ),
+                    selectedDate: $viewModel.calendarDate,
                     availableRange: viewModel.selectableCalendarRange
                 )
                 .frame(height: 360)
@@ -99,35 +72,24 @@ struct TransactionImportReviewSheet: View {
             .navigationTitle("Date Range")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        viewModel.importDismissReason = .cancel
-                        viewModel.activeImportSheet = nil
+                        viewModel.cancel()
                     }
-                    .disabled(viewModel.isFinalisingImport)
+                    .disabled(viewModel.isFinalising)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        Task {
-                            await viewModel.commitPendingImport(
-                                onImportSuccess: onImportSuccess
-                            )
-                        }
+                        Task { await viewModel.commit() }
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .disabled(!viewModel.canCommitPendingImport)
+                    .disabled(!viewModel.canCommit)
                 }
             }
         }
-        .interactiveDismissDisabled(viewModel.isFinalisingImport)
-        .onChange(of: viewModel.selectedImportRange) {
-            if let newValue = viewModel.selectedImportRange {
-                displayedRange = newValue
-            }
-        }
+        .interactiveDismissDisabled(viewModel.isFinalising)
     }
 }
 

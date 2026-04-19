@@ -8,48 +8,41 @@
 import SwiftUI
 
 struct TransactionImportOptionsSheet: View {
-    let viewModel: HomeViewModel
-    let onImportSuccess: () -> Void
+    let viewModel: ImportOptionsViewModel
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
-                if let session = viewModel.pendingImportSession {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Imported Transactions Ready")
-                            .font(.title2.bold())
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Imported Transactions Ready")
+                        .font(.title2.bold())
 
-                        Text("\(session.totalCount) transactions were found.")
-                            .font(.body)
+                    Text("\(viewModel.totalCount) transactions were found.")
+                        .font(.body)
 
-                        Text(
-                            "Available dates: \(session.availableRange.lowerBound.formatted(date: .abbreviated, time: .omitted)) – \(session.availableRange.upperBound.formatted(date: .abbreviated, time: .omitted))"
-                        )
+                    Text("Available dates: \(viewModel.availableRangeText)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    }
                 }
 
                 VStack(spacing: 16) {
                     Button {
-                        Task {
-                            await viewModel.commitFullPendingImport(onImportSuccess: onImportSuccess)
-                        }
+                        Task { await viewModel.importAll() }
                     } label: {
                         Label("Import All Transactions", systemImage: "square.and.arrow.down")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glassProminent)
-                    .disabled(viewModel.isFinalisingImport)
+                    .disabled(viewModel.isFinalising)
 
                     Button {
-                        viewModel.showImportRangeSheet()
+                        viewModel.chooseDateRange()
                     } label: {
                         Label("Choose Date Range", systemImage: "calendar")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glass)
-                    .disabled(viewModel.isFinalisingImport)
+                    .disabled(viewModel.isFinalising)
                 }
 
                 Spacer()
@@ -60,6 +53,6 @@ struct TransactionImportOptionsSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled(viewModel.isFinalisingImport)
+        .interactiveDismissDisabled(viewModel.isFinalising)
     }
 }
