@@ -14,7 +14,7 @@ final class TrueLayerAuthService: NSObject, ASWebAuthenticationPresentationConte
     func authenticate(authURL: URL) async throws -> URL {
         let session = ASWebAuthenticationSession(
             url: authURL,
-            callbackURLScheme: "bujet"
+            callback: .customScheme("bujet")
         )
         session.presentationContextProvider = self
         session.prefersEphemeralWebBrowserSession = false
