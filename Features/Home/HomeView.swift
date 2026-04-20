@@ -118,10 +118,25 @@ struct HomeView: View {
                 }
             }
         }
+        .sheet(item: $bindableViewModel.activeManualFlow) { flow in
+            ManualTransactionSheet(
+                viewModel: ManualTransactionViewModel(flow: flow)
+            )
+        }
+        .alert(item: $bindableViewModel.manualImportResult) { result in
+            Alert(
+                title: Text("Import Successful"),
+                message: Text("\(result.count) transaction(s) added."),
+                primaryButton: .default(Text("View Transactions")) {
+                    onImportSuccess()
+                },
+                secondaryButton: .cancel(Text("OK"))
+            )
+        }
     }
 
     private func quickAddTransaction() {
-        // Hook this up later
+        viewModel.startManualImport()
     }
 
     private func connectBankAccount() {

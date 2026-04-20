@@ -32,5 +32,10 @@ struct TransactionRowView: View {
             }
         }
         .padding(.vertical, 4)
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(transaction.source == .manual ? Color.green : Color.purple)
+                .frame(width: 8, height: 8)
+        }
     }
 }
