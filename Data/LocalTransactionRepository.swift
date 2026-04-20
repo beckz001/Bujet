@@ -31,6 +31,8 @@ actor LocalTransactionRepository: TransactionRepository {
             let data = try Data(contentsOf: fileURL)
             return try decoder.decode([Transaction].self, from: data)
         } catch {
+            // Wipe on schema mismatch (e.g. first launch after adding `source` field)
+            try? FileManager.default.removeItem(at: fileURL)
             return []
         }
     }
@@ -38,6 +40,12 @@ actor LocalTransactionRepository: TransactionRepository {
     func replaceAll(with transactions: [Transaction]) async throws {
         let data = try encoder.encode(transactions)
         try data.write(to: fileURL, options: .atomic)
+    }
+
+    func add(_ transactions: [Transaction]) async throws {
+        var existing = await fetchAll()
+        existing.append(contentsOf: transactions)
+        try await replaceAll(with: existing)
     }
 
     func clear() async throws {

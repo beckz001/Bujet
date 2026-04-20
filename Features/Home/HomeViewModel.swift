@@ -22,6 +22,17 @@ final class HomeViewModel {
     /// Drives the import sheet presentation from `HomeView`.
     var activeImportFlow: TransactionImportFlow?
 
+    /// Non-nil while a manual transaction entry sheet is open.
+    var activeManualFlow: ManualTransactionFlow?
+
+    /// Non-nil after a successful manual import — drives the success alert.
+    var manualImportResult: ManualImportResult?
+
+    struct ManualImportResult: Identifiable {
+        let id = UUID()
+        let count: Int
+    }
+
     /// Binding source for the import sheet. Keying on `Step` (not the flow) makes
     /// SwiftUI dismiss + re-present between options and review, giving the
     /// natural slide-down / slide-up transition.
@@ -62,6 +73,25 @@ final class HomeViewModel {
 
     var isImporting: Bool {
         connectionStore.isImporting || (activeImportFlow?.isFinalising ?? false)
+    }
+
+    // MARK: - Manual transaction import
+
+    func startManualImport() {
+        activeManualFlow = ManualTransactionFlow(
+            transactionRepository: transactionRepository,
+            onCommit: { [weak self] count in
+                self?.handleManualImportCommitted(count: count)
+            },
+            onCancel: { [weak self] in
+                self?.activeManualFlow = nil
+            }
+        )
+    }
+
+    private func handleManualImportCommitted(count: Int) {
+        activeManualFlow = nil
+        manualImportResult = ManualImportResult(count: count)
     }
 
     // MARK: - Bank connection + import flow

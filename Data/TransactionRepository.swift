@@ -9,5 +9,6 @@ import Foundation
 protocol TransactionRepository: Sendable {
     func fetchAll() async -> [Transaction]
     func replaceAll(with transactions: [Transaction]) async throws
+    func add(_ transactions: [Transaction]) async throws
     func clear() async throws
 }
