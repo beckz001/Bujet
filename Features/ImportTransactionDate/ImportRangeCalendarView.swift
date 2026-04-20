@@ -58,7 +58,7 @@ struct ImportRangeCalendarView: UIViewRepresentable {
         if let selection = uiView.selectionBehavior as? UICalendarSelectionSingleDate {
             let components = dateComponents(from: selectedDate)
             if selection.selectedDate != components {
-                selection.setSelected(components, animated: true)
+                selection.setSelected(components, animated: false)
             }
         }
 
