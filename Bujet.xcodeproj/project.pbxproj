@@ -48,16 +48,6 @@
 			path = Bujet;
 			sourceTree = "<group>";
 		};
-		C21CFF4C2F6AF64C007C41D9 /* BujetTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BujetTests;
-			sourceTree = "<group>";
-		};
-		C21CFF562F6AF64C007C41D9 /* BujetUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BujetUITests;
-			sourceTree = "<group>";
-		};
 		C21CFF6B2F6B0939007C41D9 /* Domain */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Domain;
@@ -119,8 +109,6 @@
 				C21CFF722F6B0BD3007C41D9 /* Data */,
 				C21CFF6B2F6B0939007C41D9 /* Domain */,
 				C21CFF3E2F6AF649007C41D9 /* Bujet */,
-				C21CFF4C2F6AF64C007C41D9 /* BujetTests */,
-				C21CFF562F6AF64C007C41D9 /* BujetUITests */,
 				C21CFF3D2F6AF649007C41D9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -178,9 +166,6 @@
 			dependencies = (
 				C21CFF4B2F6AF64C007C41D9 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				C21CFF4C2F6AF64C007C41D9 /* BujetTests */,
-			);
 			name = BujetTests;
 			packageProductDependencies = (
 			);
@@ -200,9 +185,6 @@
 			);
 			dependencies = (
 				C21CFF552F6AF64C007C41D9 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				C21CFF562F6AF64C007C41D9 /* BujetUITests */,
 			);
 			name = BujetUITests;
 			packageProductDependencies = (
