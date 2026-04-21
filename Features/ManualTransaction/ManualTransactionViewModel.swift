@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -30,4 +31,14 @@ final class ManualTransactionViewModel {
     func removeEntry(id: UUID) { flow.removeEntry(id: id) }
     func submit() async { await flow.submit() }
     func cancel() { flow.cancel() }
+    
+    func binding(for entry: ManualTransactionEntry) -> Binding<ManualTransactionEntry> {
+        Binding(
+            get: { self.entries.first(where: { $0.id == entry.id}) ?? entry},
+            set: { new in
+                guard let i = self.entries.firstIndex(where: { $0.id == entry.id }) else { return }
+                self.entries[i] = new
+            }
+        )
+    }
 }
