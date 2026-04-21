@@ -50,8 +50,8 @@ struct HomeView: View {
                     }
 
                     #if DEBUG
-                    HomeGlassCard {
-                        VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HomeGlassCard {
                             Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
                                 showingClearImportedAlert = true
                             }
@@ -64,7 +64,8 @@ struct HomeView: View {
                             } message: {
                                 Text("This action cannot be undone.")
                             }
-
+                        }
+                        HomeGlassCard {
                             Button("Clear Manual Transactions", systemImage: "trash", role: .destructive) {
                                 showingClearManualAlert = true
                             }

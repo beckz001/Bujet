@@ -219,6 +219,7 @@ final class HomeViewModel {
 
         if error is BankConnectionError {
             connectionAlert = .connectionCancelled
+            connectionStore.reset()
             return
         }
 

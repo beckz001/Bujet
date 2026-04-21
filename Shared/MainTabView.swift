@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct tabView: View {
+struct MainTabView: View {
     @Bindable var appModel: AppModel
 
     var body: some View {
