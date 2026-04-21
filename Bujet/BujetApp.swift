@@ -15,7 +15,7 @@ struct BujetApp: App {
 
     var body: some Scene {
         WindowGroup {
-            tabView(appModel: appModel)
+            MainTabView(appModel: appModel)
         }
     }
 }
