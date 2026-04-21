@@ -29,7 +29,8 @@ actor LocalTransactionRepository: TransactionRepository {
 
         do {
             let data = try Data(contentsOf: fileURL)
-            return try decoder.decode([Transaction].self, from: data)
+            let transactions = try decoder.decode([Transaction].self, from: data)
+            return transactions.sorted { $0.date > $1.date }
         } catch {
             // Wipe on schema mismatch (e.g. first launch after adding `source` field)
             try? FileManager.default.removeItem(at: fileURL)
