@@ -38,9 +38,9 @@ actor LocalTransactionRepository: TransactionRepository {
         }
     }
 
-    func replaceAll(with transactions: [Transaction]) async throws {
-        let data = try encoder.encode(transactions)
-        try data.write(to: fileURL, options: .atomic)
+    func replaceImported(with imports: [Transaction]) async throws {
+        let manual = await fetchAll().filter { $0.source == .manual }
+        try await replaceAll(with: manual + imports)
     }
 
     func add(_ transactions: [Transaction]) async throws {
@@ -49,11 +49,17 @@ actor LocalTransactionRepository: TransactionRepository {
         try await replaceAll(with: existing)
     }
 
-    func clear() async throws {
-        guard FileManager.default.fileExists(atPath: fileURL.path()) else {
-            return
+    func clear(source: TransactionSource) async throws {
+        let kept = await fetchAll().filter { $0.source != source }
+        if kept.isEmpty {
+            try? FileManager.default.removeItem(at: fileURL)
+        } else {
+            try await replaceAll(with: kept)
         }
+    }
 
-        try FileManager.default.removeItem(at: fileURL)
+    private func replaceAll(with transactions: [Transaction]) async throws {
+        let data = try encoder.encode(transactions)
+        try data.write(to: fileURL, options: .atomic)
     }
 }

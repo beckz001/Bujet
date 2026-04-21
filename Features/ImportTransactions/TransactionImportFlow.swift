@@ -128,7 +128,7 @@ final class TransactionImportFlow: Identifiable {
         let filtered = session.filteredTransactions(in: selectedRange)
 
         do {
-            try await transactionRepository.replaceAll(with: filtered)
+            try await transactionRepository.replaceImported(with: filtered)
             isFinalising = false
             onCommit(filtered.count)
         } catch {
