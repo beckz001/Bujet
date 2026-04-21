@@ -12,7 +12,10 @@ struct HomeView: View {
     let viewModel: HomeViewModel
     let onImportSuccess: () -> Void
 
-    @State private var showingClearAlert = false
+    #if DEBUG
+    @State private var showingClearImportedAlert = false
+    @State private var showingClearManualAlert = false
+    #endif
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
@@ -46,20 +49,37 @@ struct HomeView: View {
                         }
                     }
 
+                    #if DEBUG
                     HomeGlassCard {
                         VStack(alignment: .leading, spacing: 16) {
                             Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
-                                showingClearAlert = true
+                                showingClearImportedAlert = true
                             }
                             .disabled(viewModel.isImporting)
-                            .alert("Clear Imported Transactions?", isPresented: $showingClearAlert) {
+                            .alert("Clear Imported Transactions?", isPresented: $showingClearImportedAlert) {
                                 Button("Cancel", role: .cancel) { }
-                                Button("Clear", role: .destructive, action: clearTransactions)
+                                Button("Clear", role: .destructive) {
+                                    Task { await viewModel.clearImported() }
+                                }
+                            } message: {
+                                Text("This action cannot be undone.")
+                            }
+
+                            Button("Clear Manual Transactions", systemImage: "trash", role: .destructive) {
+                                showingClearManualAlert = true
+                            }
+                            .disabled(viewModel.isImporting)
+                            .alert("Clear Manual Transactions?", isPresented: $showingClearManualAlert) {
+                                Button("Cancel", role: .cancel) { }
+                                Button("Clear", role: .destructive) {
+                                    Task { await viewModel.clearManual() }
+                                }
                             } message: {
                                 Text("This action cannot be undone.")
                             }
                         }
                     }
+                    #endif
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -143,11 +163,6 @@ struct HomeView: View {
         }
     }
 
-    private func clearTransactions() {
-        Task {
-            await viewModel.clearTransactions()
-        }
-    }
 }
 
 private struct HomeBackground: View {

@@ -112,7 +112,7 @@ final class HomeViewModel {
             let transactions = try await connector.connect()
 
             if transactions.isEmpty {
-                try await transactionRepository.replaceAll(with: [])
+                try await transactionRepository.replaceImported(with: [])
                 connectionStore.connectionState = .connected(importedCount: 0)
                 self.onImportSuccess?()
                 self.onImportSuccess = nil
@@ -183,10 +183,18 @@ final class HomeViewModel {
 
     // MARK: - Transactions + alerts
 
-    func clearTransactions() async {
+    func clearImported() async {
         do {
-            try await transactionRepository.clear()
+            try await transactionRepository.clear(source: .imported)
             connectionStore.reset()
+        } catch {
+            connectionAlert = .serverConnection(message: error.localizedDescription)
+        }
+    }
+
+    func clearManual() async {
+        do {
+            try await transactionRepository.clear(source: .manual)
         } catch {
             connectionAlert = .serverConnection(message: error.localizedDescription)
         }
