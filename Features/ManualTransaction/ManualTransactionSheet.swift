@@ -110,9 +110,10 @@ private struct TransactionEntryCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 TextField("Description", text: $entry.descriptionText)
                     .onChange(of: entry.descriptionText) { _, new in
-                        if new.count > ManualTransactionEntry.maxDescriptionLength {
-                            entry.descriptionText = String(new.prefix(ManualTransactionEntry.maxDescriptionLength))
-                        }
+                        let sanitised = new
+                            .alphanumericWithSpacesOnly
+                            .prefix(ManualTransactionEntry.maxDescriptionLength)
+                        entry.descriptionText = String(sanitised)
                     }
                 Text("\(entry.descriptionText.count)/\(ManualTransactionEntry.maxDescriptionLength)")
                     .font(.caption2)
@@ -125,9 +126,10 @@ private struct TransactionEntryCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 TextField("Merchant Name", text: $entry.merchantName)
                     .onChange(of: entry.merchantName) { _, new in
-                        if new.count > ManualTransactionEntry.maxMerchantNameLength {
-                            entry.merchantName = String(new.prefix(ManualTransactionEntry.maxMerchantNameLength))
-                        }
+                        let sanitised = new
+                            .alphanumericWithSpacesOnly
+                            .prefix(ManualTransactionEntry.maxMerchantNameLength)
+                        entry.merchantName = String(sanitised)
                     }
                 Text("\(entry.merchantName.count)/\(ManualTransactionEntry.maxMerchantNameLength)")
                     .font(.caption2)
@@ -143,6 +145,9 @@ private struct TransactionEntryCard: View {
                     .font(.body)
                 TextField("0.00", text: $entry.amountText)
                     .keyboardType(.decimalPad)
+                    .onChange(of: entry.amountText) { _, new in
+                        entry.amountText = new.sanitisedAmount
+                    }
             }
 
             Divider()
