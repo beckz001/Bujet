@@ -1,31 +1,31 @@
 import SwiftUI
 
 struct ManualTransactionSheet: View {
-    @Bindable var viewModel: ManualTransactionViewModel
+    @Bindable var flow: ManualTransactionFlow
     @State private var showCancelConfirmation = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    ForEach(viewModel.entries) { entry in
+                    ForEach($flow.entries) { $entry in
                         TransactionEntryCard(
-                            entry: viewModel.binding(for: entry),
-                            currencyCode: viewModel.currencyCode,
-                            maximumDate: viewModel.maximumDate,
-                            canRemove: viewModel.entries.count > 1,
-                            onRemove: { viewModel.removeEntry(id: entry.id) }
+                            entry: $entry,
+                            currencyCode: flow.currencyCode,
+                            maximumDate: flow.maximumDate,
+                            canRemove: flow.entries.count > 1,
+                            onRemove: { flow.removeEntry(id: entry.id) }
                         )
                     }
 
                     Button {
-                        viewModel.addEntry()
+                        flow.addEntry()
                     } label: {
                         Label("Add another transaction", systemImage: "plus")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glass)
-                    .disabled(viewModel.isSubmitting)
+                    .disabled(flow.isSubmitting)
                 }
                 .padding()
             }
@@ -34,21 +34,21 @@ struct ManualTransactionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        if viewModel.hasUnsavedChanges {
+                        if flow.hasUnsavedChanges {
                             showCancelConfirmation = true
                         } else {
-                            viewModel.cancel()
+                            flow.cancel()
                         }
                     }
-                    .disabled(viewModel.isSubmitting)
+                    .disabled(flow.isSubmitting)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    if viewModel.isSubmitting {
+                    if flow.isSubmitting {
                         ProgressView()
                     } else {
                         Button {
-                            Task { await viewModel.submit() }
+                            Task { await flow.submit() }
                         } label: {
                             Image(systemName: "checkmark")
                         }
@@ -57,19 +57,19 @@ struct ManualTransactionSheet: View {
             }
         }
         .alert("Discard Changes?", isPresented: $showCancelConfirmation) {
-            Button("Discard", role: .destructive) { viewModel.cancel() }
+            Button("Discard", role: .destructive) { flow.cancel() }
             Button("Keep Editing", role: .cancel) { }
         } message: {
             Text("Your transaction entries will be lost.")
         }
-        .alert(item: $viewModel.validationAlert) { alert in
+        .alert(item: $flow.validationAlert) { alert in
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
                 dismissButton: .default(Text("OK"))
             )
         }
-        .interactiveDismissDisabled(viewModel.isSubmitting || viewModel.hasUnsavedChanges)
+        .interactiveDismissDisabled(flow.isSubmitting || flow.hasUnsavedChanges)
     }
 }
 

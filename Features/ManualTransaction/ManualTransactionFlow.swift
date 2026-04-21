@@ -16,6 +16,7 @@ final class ManualTransactionFlow: Identifiable {
     @ObservationIgnored private let transactionRepository: any TransactionRepository
     @ObservationIgnored private let onCommit: @MainActor (Int) -> Void
     @ObservationIgnored private let onCancel: @MainActor () -> Void
+    @ObservationIgnored private let onFailed: @MainActor (Error) -> Void
 
     enum ValidationAlert: Identifiable {
         case emptyEntry
@@ -43,11 +44,13 @@ final class ManualTransactionFlow: Identifiable {
     init(
         transactionRepository: any TransactionRepository,
         onCommit: @escaping @MainActor (Int) -> Void,
-        onCancel: @escaping @MainActor () -> Void
+        onCancel: @escaping @MainActor () -> Void,
+        onFailed: @escaping @MainActor (Error) -> Void
     ) {
         self.transactionRepository = transactionRepository
         self.onCommit = onCommit
         self.onCancel = onCancel
+        self.onFailed = onFailed
     }
 
     var hasUnsavedChanges: Bool {
@@ -88,7 +91,7 @@ final class ManualTransactionFlow: Identifiable {
             onCommit(transactions.count)
         } catch {
             isSubmitting = false
-            validationAlert = .invalidData
+            onFailed(error)
         }
     }
 

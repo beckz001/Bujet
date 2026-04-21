@@ -119,9 +119,7 @@ struct HomeView: View {
             }
         }
         .sheet(item: $bindableViewModel.activeManualFlow) { flow in
-            ManualTransactionSheet(
-                viewModel: ManualTransactionViewModel(flow: flow)
-            )
+            ManualTransactionSheet(flow: flow)
         }
         .alert(item: $bindableViewModel.manualImportResult) { result in
             Alert(

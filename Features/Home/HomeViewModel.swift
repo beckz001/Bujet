@@ -15,7 +15,6 @@ final class HomeViewModel {
     @ObservationIgnored private let connector: any BankConnecting
     @ObservationIgnored private let connectionStore: BankConnectionStateStore
 
-    var alertMessage: String?
     var connectionAlert: ConnectionAlert?
 
     /// Non-nil while a bank import is being reviewed/committed.
@@ -85,6 +84,9 @@ final class HomeViewModel {
             },
             onCancel: { [weak self] in
                 self?.activeManualFlow = nil
+            },
+            onFailed: { [weak self] error in
+                self?.handleManualImportFailed(error)
             }
         )
     }
@@ -94,10 +96,14 @@ final class HomeViewModel {
         manualImportResult = ManualImportResult(count: count)
     }
 
+    private func handleManualImportFailed(_ error: Error) {
+        activeManualFlow = nil
+        connectionAlert = .serverConnection(message: error.localizedDescription)
+    }
+
     // MARK: - Bank connection + import flow
 
     func startBankConnection(onImportSuccess: (() -> Void)? = nil) async {
-        alertMessage = nil
         activeImportFlow = nil
         self.onImportSuccess = onImportSuccess
         connectionStore.connectionState = .importing
@@ -182,7 +188,7 @@ final class HomeViewModel {
             try await transactionRepository.clear()
             connectionStore.reset()
         } catch {
-            alertMessage = error.localizedDescription
+            connectionAlert = .serverConnection(message: error.localizedDescription)
         }
     }
 
@@ -222,7 +228,6 @@ final class HomeViewModel {
 
     func clearErrorAlert() {
         connectionAlert = nil
-        alertMessage = nil
         connectionStore.reset()
     }
 
