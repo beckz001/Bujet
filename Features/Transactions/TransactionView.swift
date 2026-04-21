@@ -23,12 +23,22 @@ struct TransactionsView: View {
         .navigationTitle("Transactions")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Picker("Filter", selection: $bindableViewModel.filter) {
+                Menu {
                     ForEach(TransactionFilter.allCases, id: \.self) { filter in
-                        Text(filter.rawValue).tag(filter)
+                        Button {
+                            bindableViewModel.filter = filter
+                        } label: {
+                            if bindableViewModel.filter == filter {
+                                Label(filter.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(filter.rawValue)
+                            }
+                        }
                     }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease")
                 }
-                .pickerStyle(.menu)
+                .accessibilityLabel("Filter transactions")
             }
         }
         .task {

@@ -1,6 +1,6 @@
 import Foundation
 
-enum ManualTransactionValidationError {
+enum ManualTransactionValidationError: Error {
     case emptyEntry
     case invalidData
 }
