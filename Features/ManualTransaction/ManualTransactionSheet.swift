@@ -8,9 +8,9 @@ struct ManualTransactionSheet: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    ForEach($flow.entries) { $entry in
+                    ForEach(flow.entries) { entry in
                         TransactionEntryCard(
-                            entry: $entry,
+                            entry: flow.binding(for: entry),
                             currencyCode: flow.currencyCode,
                             maximumDate: flow.maximumDate,
                             canRemove: flow.entries.count > 1,

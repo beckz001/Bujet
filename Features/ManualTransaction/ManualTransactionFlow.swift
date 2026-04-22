@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Observation
 
 @MainActor
@@ -98,5 +99,15 @@ final class ManualTransactionFlow: Identifiable {
     func cancel() {
         guard !isSubmitting else { return }
         onCancel()
+    }
+    
+    func binding(for entry: ManualTransactionEntry) -> Binding<ManualTransactionEntry> {
+        Binding(
+            get: { self.entries.first(where: { $0.id == entry.id}) ?? entry},
+            set: { new in
+                guard let i = self.entries.firstIndex(where: { $0.id == entry.id }) else { return }
+                self.entries[i] = new
+            }
+        )
     }
 }
