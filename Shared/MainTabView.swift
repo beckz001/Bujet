@@ -18,6 +18,7 @@ struct MainTabView: View {
                     onImportSuccess: {
                         Task {
                             await appModel.transactionsViewModel.refresh()
+                            await appModel.insightsViewModel.refresh()
                         }
                         appModel.selectedTab = .transactions
                     }
@@ -29,7 +30,7 @@ struct MainTabView: View {
             .tag(TabModel.home)
 
             NavigationStack {
-                Text("Insights")
+                InsightsView(viewModel: appModel.insightsViewModel)
             }
             .tabItem {
                 Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
