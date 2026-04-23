@@ -11,6 +11,7 @@ final class AppModel {
 
     let homeViewModel: HomeViewModel
     let transactionsViewModel: TransactionsViewModel
+    let insightsViewModel: InsightsViewModel
 
     init(
         transactionRepository: some TransactionRepository,
@@ -28,6 +29,10 @@ final class AppModel {
         )
 
         self.transactionsViewModel = TransactionsViewModel(
+            transactionRepository: transactionRepository
+        )
+
+        self.insightsViewModel = InsightsViewModel(
             transactionRepository: transactionRepository
         )
     }

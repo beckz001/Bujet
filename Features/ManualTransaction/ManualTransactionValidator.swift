@@ -28,7 +28,8 @@ struct ManualTransactionValidator {
             merchantName: merchant,
             amount: signedAmount,
             currencyCode: currencyCode,
-            source: .manual
+            source: .manual,
+            category: .other
         ))
     }
 }

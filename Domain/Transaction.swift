@@ -19,16 +19,19 @@ struct Transaction: Identifiable, Codable, Hashable {
     let amount: Double
     let currencyCode: String
     let source: TransactionSource
+    let category: TransactionCategory
 
     var isDebit: Bool {
         amount < 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, date, description, merchantName, amount, currencyCode, source
+        case id, date, description, merchantName, amount, currencyCode, source, category, classification
     }
 
-    // Defaults `source` to `.imported` when absent — backend responses don't include this field.
+    // Backend payloads omit `source` and `category` but include `classification`;
+    // locally persisted transactions include `source` and `category`. Try stored
+    // fields first, derive via the categoriser otherwise.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
@@ -38,10 +41,33 @@ struct Transaction: Identifiable, Codable, Hashable {
         amount = try c.decode(Double.self, forKey: .amount)
         currencyCode = try c.decode(String.self, forKey: .currencyCode)
         source = try c.decodeIfPresent(TransactionSource.self, forKey: .source) ?? .imported
+
+        if let stored = try c.decodeIfPresent(TransactionCategory.self, forKey: .category) {
+            category = stored
+        } else {
+            let classifications = try c.decodeIfPresent([String].self, forKey: .classification)
+            category = TransactionCategoriser.categorise(
+                classifications: classifications,
+                merchant: merchantName
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(date, forKey: .date)
+        try c.encode(description, forKey: .description)
+        try c.encode(merchantName, forKey: .merchantName)
+        try c.encode(amount, forKey: .amount)
+        try c.encode(currencyCode, forKey: .currencyCode)
+        try c.encode(source, forKey: .source)
+        try c.encode(category, forKey: .category)
     }
 
     init(id: String, date: Date, description: String, merchantName: String,
-         amount: Double, currencyCode: String, source: TransactionSource) {
+         amount: Double, currencyCode: String, source: TransactionSource,
+         category: TransactionCategory) {
         self.id = id
         self.date = date
         self.description = description
@@ -49,5 +75,6 @@ struct Transaction: Identifiable, Codable, Hashable {
         self.amount = amount
         self.currencyCode = currencyCode
         self.source = source
+        self.category = category
     }
 }
