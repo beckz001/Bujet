@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C208BA432F9ABCAC00341426 /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C208BA412F9ABCAC00341426 /* InstrumentSerif-Italic.ttf */; };
+		C208BA442F9ABCAC00341426 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C208BA422F9ABCAC00341426 /* InstrumentSerif-Regular.ttf */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C21CFF4A2F6AF64C007C41D9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +29,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C208BA412F9ABCAC00341426 /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
+		C208BA422F9ABCAC00341426 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
 		C21CFF3C2F6AF649007C41D9 /* Bujet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bujet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C21CFF492F6AF64C007C41D9 /* BujetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BujetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C21CFF532F6AF64C007C41D9 /* BujetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BujetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -110,6 +117,8 @@
 				C21CFF6B2F6B0939007C41D9 /* Domain */,
 				C21CFF3E2F6AF649007C41D9 /* Bujet */,
 				C21CFF3D2F6AF649007C41D9 /* Products */,
+				C208BA412F9ABCAC00341426 /* InstrumentSerif-Italic.ttf */,
+				C208BA422F9ABCAC00341426 /* InstrumentSerif-Regular.ttf */,
 			);
 			sourceTree = "<group>";
 		};
@@ -242,6 +251,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C208BA432F9ABCAC00341426 /* InstrumentSerif-Italic.ttf in Resources */,
+				C208BA442F9ABCAC00341426 /* InstrumentSerif-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
