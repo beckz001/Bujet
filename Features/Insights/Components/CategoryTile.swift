@@ -30,6 +30,9 @@ struct CategoryTile: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
     }
 }

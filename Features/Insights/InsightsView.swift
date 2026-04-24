@@ -8,19 +8,6 @@ struct InsightsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Insights")
-                        .font(.custom("InstrumentSerif-Italic", size: 42))
-                        .italic()
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    InsightsMonthPicker(
-                        selectedMonth: $bindableViewModel.selectedMonth,
-                        availableMonths: viewModel.availableMonths
-                    )
-                }
 
                 WhereItWentCard(
                     total: viewModel.monthTotal,
@@ -36,9 +23,9 @@ struct InsightsView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Categories this month")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
+                        .font(.system(.subheadline, design: .serif))
+                        .foregroundStyle(.black)
+                    
                     VStack(spacing: 12) {
                         ForEach(TransactionCategory.allCases) { category in
                             NavigationLink {
@@ -67,7 +54,19 @@ struct InsightsView: View {
         }
         .scrollIndicators(.hidden)
         .background(Color(hex: "EFEFD0").ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Insights")
+                    .font(.custom("InstrumentSerif-Italic", size: 34))
+                    .foregroundStyle(.black)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                InsightsMonthPicker(
+                    selectedMonth: $bindableViewModel.selectedMonth,
+                    availableMonths: viewModel.availableMonths
+                )
+            }
+        }
         .task { await viewModel.loadTransactions() }
         .refreshable { await viewModel.refresh() }
     }

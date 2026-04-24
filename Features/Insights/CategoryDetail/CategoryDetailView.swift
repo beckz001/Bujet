@@ -10,6 +10,7 @@ struct CategoryDetailView: View {
                     .font(.system(size: 24, weight: .regular, design: .serif))
                     .italic()
                     .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                     .padding(.top, 4)
 
                 if viewModel.groupedByDay.isEmpty {
@@ -19,6 +20,7 @@ struct CategoryDetailView: View {
                         description: Text("Nothing in this category for the selected month.")
                     )
                     .padding(.top, 40)
+                    .foregroundStyle(.black)
                 } else {
                     ForEach(viewModel.groupedByDay) { group in
                         DayGroupSection(
@@ -39,8 +41,8 @@ struct CategoryDetailView: View {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.category.displayName)
                     .font(.custom("InstrumentSerif-Italic", size: 28))
-                    .italic()
                     .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
             }
         }
     }
@@ -56,6 +58,7 @@ private struct DayGroupSection: View {
                 .font(.system(size: 18, weight: .regular, design: .serif))
                 .italic()
                 .foregroundStyle(.primary)
+                .foregroundStyle(.black)
 
             VStack(spacing: 8) {
                 ForEach(group.transactions) { transaction in
@@ -96,6 +99,9 @@ private struct TransactionGlassRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
     }
 }
