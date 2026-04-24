@@ -16,8 +16,8 @@ struct WhereItWentCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Where it went")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(.body, design: .serif))
+                .foregroundStyle(.foreground)
 
             Text(total, format: .currency(code: currencyCode))
                 .font(.system(size: 40, weight: .regular, design: .serif))
@@ -35,7 +35,10 @@ struct WhereItWentCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
     }
 }
 

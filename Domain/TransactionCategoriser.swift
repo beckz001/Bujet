@@ -62,7 +62,6 @@ enum TransactionCategoriser {
         ("asda",          .groceries),
         ("aldi",          .groceries),
         ("lidl",          .groceries),
-        ("morrisons",     .groceries),
         ("waitrose",      .groceries),
         ("co-op",         .groceries),
         ("coop",          .groceries),
@@ -107,6 +106,7 @@ enum TransactionCategoriser {
         ("ryanair",       .transport),
         ("easyjet",       .transport),
         ("british airways", .transport),
+        ("morrisons petrol", .transport),
 
         // Bills
         ("british gas",   .bills),
@@ -128,6 +128,7 @@ enum TransactionCategoriser {
         ("disney+",       .bills),
         ("amazon prime",  .bills),
         ("apple.com/bill", .bills),
+        ("tesco mobile ltd", .bills),
         ("council tax",   .bills)
     ]
 }
