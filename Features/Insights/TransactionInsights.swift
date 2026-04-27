@@ -76,6 +76,16 @@ struct TransactionInsights {
             .reduce(0) { $0 + abs($1.amount) }
     }
 
+    /// Groups any transaction list by calendar day (newest day first, newest
+    /// transaction within a day first). Unlike the category-scoped variant
+    /// below, this includes credits.
+    func groupedByDay(from all: [Transaction]) -> [(day: Date, transactions: [Transaction])] {
+        let grouped = Dictionary(grouping: all) { calendar.startOfDay(for: $0.date) }
+        return grouped
+            .map { (day: $0.key, transactions: $0.value.sorted { $0.date > $1.date }) }
+            .sorted { $0.day > $1.day }
+    }
+
     /// Most recent debits, newest first, capped to `limit`.
     func mostRecent(_ limit: Int, from all: [Transaction]) -> [Transaction] {
         all
