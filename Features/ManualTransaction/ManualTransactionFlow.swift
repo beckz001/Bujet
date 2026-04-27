@@ -61,13 +61,17 @@ final class ManualTransactionFlow: Identifiable {
     }
 
     func addEntry() {
-        entries.append(ManualTransactionEntry())
+        withAnimation(.smooth) {
+            entries.append(ManualTransactionEntry())
+        }
     }
 
     func removeEntry(id: UUID) {
-        entries.removeAll { $0.id == id }
-        if entries.isEmpty {
-            entries.append(ManualTransactionEntry())
+        withAnimation(.smooth) {
+            entries.removeAll { $0.id == id }
+            if entries.isEmpty {
+                entries.append(ManualTransactionEntry())
+            }
         }
     }
 
