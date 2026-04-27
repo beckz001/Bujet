@@ -13,7 +13,7 @@ struct RaisedDecimalAmount: View {
     var body: some View {
         let parts = Self.split(amount: amount, currencyCode: currencyCode)
 
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(parts.symbol)
                 .font(.system(size: smallSize, design: .serif))
                 .baselineOffset(raisedOffset)

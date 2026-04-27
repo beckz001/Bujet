@@ -48,14 +48,6 @@ struct MainTabView: View {
                 Label("Transactions", systemImage: "pencil.and.list.clipboard")
             }
             .tag(TabModel.transactions)
-
-            NavigationStack {
-                Text("Settings")
-            }
-            .tabItem {
-                Label("Settings", systemImage: "gear")
-            }
-            .tag(TabModel.settings)
         }
     }
 }

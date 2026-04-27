@@ -8,7 +8,7 @@ struct TransactionsView: View {
         @Bindable var bindableViewModel = viewModel
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            LazyVStack(alignment: .leading, spacing: 20) {
                 filterChips
 
                 if viewModel.groupedByDay.isEmpty {
@@ -25,6 +25,8 @@ struct TransactionsView: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 24)
+            .animation(nil, value: viewModel.searchText)
+            .animation(nil, value: viewModel.filter)
         }
         .scrollIndicators(.hidden)
         .background(AppPalette.background.ignoresSafeArea())
@@ -71,6 +73,7 @@ struct TransactionsView: View {
                     systemImage: "tray",
                     description: Text(emptyDescription)
                 )
+                .foregroundStyle(.black)
             }
         }
         .frame(maxWidth: .infinity)

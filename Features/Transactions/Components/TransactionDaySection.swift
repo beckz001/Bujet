@@ -9,6 +9,7 @@ struct TransactionDaySection: View {
             Text(Self.dayLabel(for: day))
                 .font(.system(.title3, design: .serif))
                 .foregroundStyle(.primary)
+                .foregroundStyle(.black)
 
             VStack(spacing: 0) {
                 ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in

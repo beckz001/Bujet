@@ -7,18 +7,16 @@ struct TodaySpentTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Today")
-                .font(.system(.title3, design: .serif))
+                .font(.system(.title, design: .serif))
                 .foregroundStyle(.primary)
-
-            Spacer(minLength: 0)
-
+            
             RaisedDecimalAmount(
                 amount: amount,
                 currencyCode: currencyCode,
                 integerSize: 32
             )
         }
-        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .center)
         .padding(20)
         .surfaceTile()
     }

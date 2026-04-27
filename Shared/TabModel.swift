@@ -10,5 +10,4 @@ enum TabModel: Hashable {
     case home
     case insights
     case transactions
-    case settings
 }
