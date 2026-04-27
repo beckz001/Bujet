@@ -67,6 +67,56 @@ struct TransactionInsights {
         return Array(Set(starts)).sorted(by: >)
     }
 
+    /// Total spend on a single calendar day.
+    func totalAmount(on day: Date, from all: [Transaction]) -> Double {
+        let start = calendar.startOfDay(for: day)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        return all
+            .filter { $0.isDebit && $0.date >= start && $0.date < end }
+            .reduce(0) { $0 + abs($1.amount) }
+    }
+
+    /// Most recent debits, newest first, capped to `limit`.
+    func mostRecent(_ limit: Int, from all: [Transaction]) -> [Transaction] {
+        all
+            .filter(\.isDebit)
+            .sorted { $0.date > $1.date }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    /// Compares spend in the current month-to-date against the same day-range
+    /// in the previous month. Avoids the start-of-month "+100%" artefact that
+    /// a full-month comparison would produce.
+    func spendTrend(currentMonth month: Date, now: Date = Date(), from all: [Transaction]) -> SpendTrend {
+        guard
+            let currentStart = calendar.dateInterval(of: .month, for: month)?.start,
+            let previousStart = calendar.date(byAdding: .month, value: -1, to: currentStart)
+        else {
+            return .flat
+        }
+
+        let dayOfMonth = calendar.component(.day, from: now)
+
+        let currentEnd = calendar.date(byAdding: .day, value: dayOfMonth, to: currentStart) ?? now
+        let previousEnd = calendar.date(byAdding: .day, value: dayOfMonth, to: previousStart) ?? previousStart
+
+        let current = sumDebits(from: all, start: currentStart, end: currentEnd)
+        let previous = sumDebits(from: all, start: previousStart, end: previousEnd)
+
+        guard previous > 0 else { return .flat }
+
+        let pct = ((current - previous) / previous) * 100
+        if abs(pct) < 0.5 { return .flat }
+        return pct > 0 ? .up(percentage: pct) : .down(percentage: abs(pct))
+    }
+
+    private func sumDebits(from all: [Transaction], start: Date, end: Date) -> Double {
+        all
+            .filter { $0.isDebit && $0.date >= start && $0.date < end }
+            .reduce(0) { $0 + abs($1.amount) }
+    }
+
     /// Groups a category's transactions by day within the month, sorted newest day first.
     func transactionsGroupedByDay(
         in month: Date,

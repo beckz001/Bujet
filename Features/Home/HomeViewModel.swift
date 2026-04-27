@@ -14,6 +14,10 @@ final class HomeViewModel {
     @ObservationIgnored private let transactionRepository: any TransactionRepository
     @ObservationIgnored private let connector: any BankConnecting
     @ObservationIgnored private let connectionStore: BankConnectionStateStore
+    @ObservationIgnored private let insights = TransactionInsights()
+    @ObservationIgnored private let calendar = Calendar.current
+
+    var transactions: [Transaction] = []
 
     var connectionAlert: ConnectionAlert?
 
@@ -58,6 +62,70 @@ final class HomeViewModel {
         self.transactionRepository = transactionRepository
         self.connector = connector
         self.connectionStore = connectionStore
+    }
+
+    // MARK: - Lifecycle
+
+    func loadTransactions() async {
+        transactions = await transactionRepository.fetchAll()
+    }
+
+    func refresh() async {
+        await loadTransactions()
+    }
+
+    // MARK: - Derived display data
+
+    /// Total outgoing spend in the current calendar month.
+    func totalAmountMonth() -> Double {
+        insights.totalAmount(in: Date(), from: transactions)
+    }
+
+    /// Spend trend for the current month-to-date vs the same day-range last month.
+    func compareLastMonth() -> SpendTrend {
+        insights.spendTrend(currentMonth: Date(), from: transactions)
+    }
+
+    /// Whole days remaining in the current calendar month, exclusive of today.
+    func daysRemainingMonth() -> Int {
+        let now = Date()
+        guard
+            let range = calendar.range(of: .day, in: .month, for: now)
+        else { return 0 }
+        let day = calendar.component(.day, from: now)
+        return max(0, range.count - day)
+    }
+
+    /// 0...1 fraction of the current month already elapsed.
+    var monthProgress: Double {
+        let now = Date()
+        guard let range = calendar.range(of: .day, in: .month, for: now), range.count > 0 else {
+            return 0
+        }
+        let day = Double(calendar.component(.day, from: now))
+        return day / Double(range.count)
+    }
+
+    /// Sum of debits dated today.
+    func todaySpent() -> Double {
+        insights.totalAmount(on: Date(), from: transactions)
+    }
+
+    /// Three most recent debits, newest first.
+    func recentTransactions() -> [Transaction] {
+        insights.mostRecent(3, from: transactions)
+    }
+
+    var currencyCode: String {
+        transactions.first?.currencyCode ?? Locale.current.currency?.identifier ?? "GBP"
+    }
+
+    /// Abbreviated previous month name for the trend pill (e.g. "MAR").
+    var previousMonthLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLL"
+        let prev = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        return formatter.string(from: prev).uppercased()
     }
 
     // MARK: - Derived connection state
@@ -187,6 +255,7 @@ final class HomeViewModel {
         do {
             try await transactionRepository.clear(source: .imported)
             connectionStore.reset()
+            await loadTransactions()
         } catch {
             connectionAlert = .serverConnection(message: error.localizedDescription)
         }
@@ -195,6 +264,7 @@ final class HomeViewModel {
     func clearManual() async {
         do {
             try await transactionRepository.clear(source: .manual)
+            await loadTransactions()
         } catch {
             connectionAlert = .serverConnection(message: error.localizedDescription)
         }
