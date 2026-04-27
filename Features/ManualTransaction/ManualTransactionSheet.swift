@@ -16,6 +16,10 @@ struct ManualTransactionSheet: View {
                             canRemove: flow.entries.count > 1,
                             onRemove: { flow.removeEntry(id: entry.id) }
                         )
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity.combined(with: .scale(scale: 0.9))
+                        ))
                     }
 
                     Button {
