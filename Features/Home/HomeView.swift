@@ -11,6 +11,7 @@ import Observation
 struct HomeView: View {
     let viewModel: HomeViewModel
     let onImportSuccess: () -> Void
+    let onSeeAllTapped: () -> Void
 
     #if DEBUG
     @State private var showingClearImportedAlert = false
@@ -19,79 +20,56 @@ struct HomeView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        let bannerState = viewModel.bannerState
 
-        ZStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
-                    HomeConnectionBar(
-                        state: bannerState
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                SpentThisMonthCard(
+                    total: viewModel.totalAmountMonth(),
+                    currencyCode: viewModel.currencyCode,
+                    trend: viewModel.compareLastMonth(),
+                    previousMonthLabel: viewModel.previousMonthLabel,
+                    daysRemaining: viewModel.daysRemainingMonth(),
+                    monthProgress: viewModel.monthProgress
+                )
+
+                HStack(spacing: 16) {
+                    TodaySpentTile(
+                        amount: viewModel.todaySpent(),
+                        currencyCode: viewModel.currencyCode
                     )
 
-                    HStack(spacing: 16) {
-                        HomeActionCard(
-                            title: "Quick add\ntransaction",
-                            systemImage: "plus",
-                            action: quickAddTransaction
-                        )
-
-                        HomeActionCard(
-                            title: "Connect to a\nbank account",
-                            systemImage: "building.columns",
-                            action: connectBankAccount,
-                            isDisabled: viewModel.isImporting || viewModel.bannerState == .connected
-                        )
-                    }
-
-                    HomeGlassCard(minHeight: 180) {
-                        VStack {
-                            Text("Example of a large content card")
-                        }
-                    }
-
-                    #if DEBUG
-                    VStack(alignment: .leading, spacing: 16) {
-                        HomeGlassCard {
-                            Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
-                                showingClearImportedAlert = true
-                            }
-                            .disabled(viewModel.isImporting)
-                            .alert("Clear Imported Transactions?", isPresented: $showingClearImportedAlert) {
-                                Button("Cancel", role: .cancel) { }
-                                Button("Clear", role: .destructive) {
-                                    Task { await viewModel.clearImported() }
-                                }
-                            } message: {
-                                Text("This action cannot be undone.")
-                            }
-                        }
-                        HomeGlassCard {
-                            Button("Clear Manual Transactions", systemImage: "trash", role: .destructive) {
-                                showingClearManualAlert = true
-                            }
-                            .disabled(viewModel.isImporting)
-                            .alert("Clear Manual Transactions?", isPresented: $showingClearManualAlert) {
-                                Button("Cancel", role: .cancel) { }
-                                Button("Clear", role: .destructive) {
-                                    Task { await viewModel.clearManual() }
-                                }
-                            } message: {
-                                Text("This action cannot be undone.")
-                            }
-                        }
-                    }
-                    #endif
+                    QuickAddTile(action: quickAddTransaction)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+
+                HomeConnectionPill(
+                    state: viewModel.bannerState,
+                    onTap: connectBankAccount
+                )
+
+                RecentTransactionsCard(
+                    transactions: viewModel.recentTransactions(),
+                    onSeeAll: onSeeAllTapped
+                )
+
+                #if DEBUG
+                debugButtons
+                #endif
             }
-            .scrollIndicators(.hidden)
-            .background {
-                HomeBackground()
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .background(AppPalette.background.ignoresSafeArea())
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Home")
+                    .font(.custom("InstrumentSerif-Italic", size: 34))
+                    .foregroundStyle(.black)
             }
         }
-        .navigationTitle("Home")
+        .task { await viewModel.loadTransactions() }
+        .refreshable { await viewModel.refresh() }
         .alert(item: $bindableViewModel.connectionAlert) { alert in
             switch alert {
             case .serverConnection(let message):
@@ -164,143 +142,42 @@ struct HomeView: View {
         }
     }
 
-}
-
-private struct HomeBackground: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.white,
-                    Color.purple.opacity(0.14),
-                    Color.purple.opacity(0.32)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            RadialGradient(
-                colors: [
-                    Color.purple.opacity(0.22),
-                    .clear
-                ],
-                center: .bottom,
-                startRadius: 80,
-                endRadius: 520
-            )
-        }
-        .ignoresSafeArea()
-    }
-}
-
-// MARK: - Connection bar
-private struct HomeConnectionBar: View {
-    let state: ConnectionBannerState
-
-    private var title: String {
-        switch state {
-        case .connected:
-            return "Connected"
-        case .disconnected:
-            return "Disconnected"
-        case .dataPending:
-            return "Connecting"
-        case .importFailed:
-            return "Disconnected"
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .padding()
-
-            Spacer(minLength: 8)
-
-            trailingIcon
-                .padding()
-        }
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity)
-        .frame(height: 45)
-        .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
-    }
-
+    #if DEBUG
     @ViewBuilder
-    private var trailingIcon: some View {
-        switch state {
-        case .connected:
-            Image(systemName: "network")
-                .font(.system(size: 25, weight: .medium))
-                .foregroundStyle(.primary)
-
-        case .disconnected:
-            Image(systemName: "network.slash")
-                .font(.system(size: 25, weight: .medium))
-                .foregroundStyle(.primary)
-
-        case .dataPending:
-            ProgressView()
-                .controlSize(.regular)
-                .tint(.primary)
-                .scaleEffect(0.85)
-
-        case .importFailed:
-            Image(systemName: "network.slash")
-                .font(.system(size: 25, weight: .medium))
-                .foregroundStyle(.primary)
-        }
-    }
-}
-
-// MARK: Action Card
-private struct HomeActionCard: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-    var isDisabled = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 14) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 45, weight: .medium))
-
-                Text(title)
-                    .font(.title3.bold())
-                    .multilineTextAlignment(.center)
+    private var debugButtons: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button("Clear Imported Transactions", systemImage: "trash", role: .destructive) {
+                showingClearImportedAlert = true
             }
-            .frame(maxWidth: .infinity, minHeight: 132)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-            .foregroundStyle(.primary)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
+            .disabled(viewModel.isImporting)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .surfaceTile()
+            .alert("Clear Imported Transactions?", isPresented: $showingClearImportedAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    Task { await viewModel.clearImported() }
+                }
+            } message: {
+                Text("This action cannot be undone.")
+            }
+
+            Button("Clear Manual Transactions", systemImage: "trash", role: .destructive) {
+                showingClearManualAlert = true
+            }
+            .disabled(viewModel.isImporting)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .surfaceTile()
+            .alert("Clear Manual Transactions?", isPresented: $showingClearManualAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    Task { await viewModel.clearManual() }
+                }
+            } message: {
+                Text("This action cannot be undone.")
+            }
         }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.55 : 1)
     }
-}
-
-// MARK: Glass Card
-private struct HomeGlassCard<Content: View>: View {
-    let minHeight: CGFloat?
-    @ViewBuilder let content: Content
-
-    init(minHeight: CGFloat? = nil, @ViewBuilder content: () -> Content) {
-        self.minHeight = minHeight
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content
-        }
-        .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
-        .padding(20)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
-    }
+    #endif
 }

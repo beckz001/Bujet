@@ -19,7 +19,11 @@ struct MainTabView: View {
                         Task {
                             await appModel.transactionsViewModel.refresh()
                             await appModel.insightsViewModel.refresh()
+                            await appModel.homeViewModel.refresh()
                         }
+                        appModel.selectedTab = .transactions
+                    },
+                    onSeeAllTapped: {
                         appModel.selectedTab = .transactions
                     }
                 )

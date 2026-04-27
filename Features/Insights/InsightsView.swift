@@ -53,7 +53,7 @@ struct InsightsView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(Color(hex: "EFEFD0").ignoresSafeArea())
+        .background(AppPalette.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("Insights")

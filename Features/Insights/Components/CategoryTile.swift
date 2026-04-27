@@ -30,9 +30,6 @@ struct CategoryTile: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-        )
+        .surfaceTile()
     }
 }

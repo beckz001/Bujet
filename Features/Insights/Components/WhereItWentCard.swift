@@ -35,10 +35,7 @@ struct WhereItWentCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-        )
+        .surfaceTile()
     }
 }
 
