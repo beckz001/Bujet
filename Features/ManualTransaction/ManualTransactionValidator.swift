@@ -29,7 +29,7 @@ struct ManualTransactionValidator {
             amount: signedAmount,
             currencyCode: currencyCode,
             source: .manual,
-            category: .other
+            category: entry.category
         ))
     }
 }
