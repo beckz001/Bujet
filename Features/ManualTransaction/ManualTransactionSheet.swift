@@ -156,6 +156,18 @@ private struct TransactionEntryCard: View {
 
             Divider()
 
+            Picker(selection: $entry.category) {
+                ForEach(TransactionCategory.allCases) { category in
+                    Label(category.displayName, systemImage: category.systemImage)
+                        .tag(category)
+                }
+            } label: {
+                Text("Category")
+            }
+            .pickerStyle(.menu)
+
+            Divider()
+
             Toggle("Credit", isOn: $entry.isCredit)
         }
         .padding()
