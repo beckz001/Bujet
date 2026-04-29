@@ -21,7 +21,7 @@ struct TransactionCompactRow: View {
 
             Spacer(minLength: 8)
 
-            Text(abs(transaction.amount), format: .currency(code: transaction.currencyCode))
+            Text(transaction.amount, format: .currency(code: transaction.currencyCode))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
                 .monospacedDigit()
