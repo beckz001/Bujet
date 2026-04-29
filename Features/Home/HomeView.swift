@@ -65,7 +65,6 @@ struct HomeView: View {
             ToolbarItem(placement: .principal) {
                 Text("Home")
                     .font(.custom("InstrumentSerif-Italic", size: 34))
-                    .foregroundStyle(.black)
             }
         }
         .task { await viewModel.loadTransactions() }

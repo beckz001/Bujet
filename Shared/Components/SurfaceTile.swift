@@ -10,7 +10,7 @@ struct SurfaceTileModifier: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    .fill(Color(uiColor: .secondarySystemBackground))
             )
     }
 }
@@ -22,8 +22,12 @@ extension View {
 }
 
 enum AppPalette {
-    static let background = Color(hex: "EFEFD0")
-
+    static let background = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor.systemBackground
+            : UIColor(hex: "EFEFD0")
+    })
+    
     static let trendUpBackground = Color(hex: "FFD4D4")
     static let trendUpForeground = Color(hex: "B8412A")
     static let trendDownBackground = Color(hex: "CDFFF3")
@@ -31,4 +35,20 @@ enum AppPalette {
 
     static let progressFill = Color(hex: "004E89")
     static let progressTrack = Color(hex: "D9D9D9")
+}
+
+extension UIColor {
+    convenience init(hex: String) {
+        let scanner = Scanner(string: hex)
+        scanner.currentIndex = hex.startIndex
+
+        var rgb: UInt64 = 0
+        scanner.scanHexInt64(&rgb)
+
+        let r = CGFloat((rgb >> 16) & 0xFF) / 255
+        let g = CGFloat((rgb >> 8) & 0xFF) / 255
+        let b = CGFloat(rgb & 0xFF) / 255
+
+        self.init(red: r, green: g, blue: b, alpha: 1.0)
+    }
 }

@@ -24,7 +24,6 @@ struct InsightsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Categories this month")
                         .font(.system(.subheadline, design: .serif))
-                        .foregroundStyle(.black)
                     
                     VStack(spacing: 12) {
                         ForEach(TransactionCategory.allCases) { category in
@@ -58,7 +57,6 @@ struct InsightsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Insights")
                     .font(.custom("InstrumentSerif-Italic", size: 34))
-                    .foregroundStyle(.black)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 InsightsMonthPicker(
