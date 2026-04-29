@@ -10,7 +10,6 @@ struct CategoryDetailView: View {
                     .font(.system(size: 24, weight: .regular, design: .serif))
                     .italic()
                     .foregroundStyle(.primary)
-                    .foregroundStyle(.black)
                     .padding(.top, 4)
 
                 if viewModel.groupedByDay.isEmpty {
@@ -20,7 +19,6 @@ struct CategoryDetailView: View {
                         description: Text("Nothing in this category for the selected month.")
                     )
                     .padding(.top, 40)
-                    .foregroundStyle(.black)
                 } else {
                     ForEach(viewModel.groupedByDay) { group in
                         DayGroupSection(
@@ -34,7 +32,7 @@ struct CategoryDetailView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(Color(hex: "EFEFD0").ignoresSafeArea())
+        .background(AppPalette.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
@@ -42,7 +40,6 @@ struct CategoryDetailView: View {
                 Text(viewModel.category.displayName)
                     .font(.custom("InstrumentSerif-Italic", size: 28))
                     .foregroundStyle(.primary)
-                    .foregroundStyle(.black)
             }
         }
     }
@@ -58,7 +55,6 @@ private struct DayGroupSection: View {
                 .font(.system(size: 18, weight: .regular, design: .serif))
                 .italic()
                 .foregroundStyle(.primary)
-                .foregroundStyle(.black)
 
             VStack(spacing: 8) {
                 ForEach(group.transactions) { transaction in
