@@ -10,10 +10,10 @@ struct TransactionInsights {
         self.calendar = calendar
     }
 
-    /// Debit transactions whose date falls within the calendar month containing `month`.
+    /// Transactions whose date falls within the calendar month containing `month`.
     func transactions(in month: Date, from all: [Transaction]) -> [Transaction] {
         guard let interval = calendar.dateInterval(of: .month, for: month) else { return [] }
-        return all.filter { $0.isDebit && interval.contains($0.date) }
+        return all.filter { interval.contains($0.date) }
     }
 
     /// Total spend (positive value) in the month.
@@ -89,7 +89,6 @@ struct TransactionInsights {
     /// Most recent debits, newest first, capped to `limit`.
     func mostRecent(_ limit: Int, from all: [Transaction]) -> [Transaction] {
         all
-            .filter(\.isDebit)
             .sorted { $0.date > $1.date }
             .prefix(limit)
             .map { $0 }

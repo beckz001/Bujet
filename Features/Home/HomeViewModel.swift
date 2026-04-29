@@ -111,7 +111,7 @@ final class HomeViewModel {
         insights.totalAmount(on: Date(), from: transactions)
     }
 
-    /// Three most recent debits, newest first.
+    /// Three most recent transactions, newest first.
     func recentTransactions() -> [Transaction] {
         insights.mostRecent(3, from: transactions)
     }
