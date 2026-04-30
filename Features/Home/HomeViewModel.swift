@@ -325,5 +325,21 @@ final class HomeViewModel {
                 return "dataAPIError-\(title)-\(message)"
             }
         }
+
+        var alertTitle: String {
+            switch self {
+            case .serverConnection: "Connection Error"
+            case .connectionCancelled: "Connection Cancelled"
+            case .dataAPIError(let title, _): title
+            }
+        }
+
+        var alertMessage: String {
+            switch self {
+            case .serverConnection(let message): message
+            case .connectionCancelled: "Bank connection cancelled, no data was sent to the server."
+            case .dataAPIError(_, let message): message
+            }
+        }
     }
 }

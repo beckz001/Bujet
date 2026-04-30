@@ -17,10 +17,47 @@ struct TrueLayerAPIErrorModel: Decodable, Equatable {
     }
 }
 
+enum TrueLayerAuthError: LocalizedError {
+    case apiError(TrueLayerAPIErrorModel)
+
+    var errorDescription: String? {
+        switch self {
+        case .apiError(let model):
+            model.errorDescription
+        }
+    }
+}
+
 enum TrueLayerAPIErrorParser {
     static func parse(from error: Error) -> TrueLayerAPIErrorModel? {
-        let raw = error.localizedDescription
+        if case let TrueLayerAuthError.apiError(model) = error {
+            return model
+        }
+        return parse(jsonString: error.localizedDescription)
+    }
 
+    /// Inspect callback query items for either a TrueLayer-style `message`
+    /// payload (URL-encoded JSON) or OAuth-standard `error` / `error_description`.
+    static func parse(queryItems: [URLQueryItem]) -> TrueLayerAPIErrorModel? {
+        func value(_ name: String) -> String? {
+            queryItems.first(where: { $0.name == name })?.value
+        }
+
+        if let message = value("message"), let model = parse(jsonString: message) {
+            return model
+        }
+
+        if let errorCode = value("error") {
+            return TrueLayerAPIErrorModel(
+                error: errorCode,
+                errorDescription: value("error_description") ?? errorCode
+            )
+        }
+
+        return nil
+    }
+
+    static func parse(jsonString raw: String) -> TrueLayerAPIErrorModel? {
         // Handle strings that may contain '+' instead of spaces
         let normalized = raw
             .replacingOccurrences(of: "+", with: " ")

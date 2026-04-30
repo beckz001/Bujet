@@ -69,33 +69,19 @@ struct HomeView: View {
         }
         .task { await viewModel.loadTransactions() }
         .refreshable { await viewModel.refresh() }
-        .alert(item: $bindableViewModel.connectionAlert) { alert in
-            switch alert {
-            case .serverConnection(let message):
-                return Alert(
-                    title: Text("Connection Error"),
-                    message: Text(message),
-                    dismissButton: .default(Text("OK"))
-                )
-
-            case .connectionCancelled:
-                return Alert(
-                    title: Text("Connection Cancelled"),
-                    message: Text("Bank connection cancelled, no data was sent to the server."),
-                    dismissButton: .default(Text("OK")) {
-                        viewModel.clearErrorAlert()
-                    }
-                )
-
-            case .dataAPIError(let title, let message):
-                return Alert(
-                    title: Text(title),
-                    message: Text(message),
-                    dismissButton: .default(Text("OK")) {
-                        viewModel.clearErrorAlert()
-                    }
-                )
-            }
+        .alert(
+            viewModel.connectionAlert?.alertTitle ?? "",
+            isPresented: Binding(
+                get: { viewModel.connectionAlert != nil },
+                set: { isShown in
+                    if !isShown { viewModel.clearErrorAlert() }
+                }
+            ),
+            presenting: viewModel.connectionAlert
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { alert in
+            Text(alert.alertMessage)
         }
         .sheet(
             item: $bindableViewModel.presentedImportSheet,

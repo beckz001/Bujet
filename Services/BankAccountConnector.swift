@@ -47,17 +47,22 @@ final class BankAccountConnector: BankConnecting {
             throw error
         }
 
-        guard
-            let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-            let sessionID = components.queryItems?.first(where: { $0.name == "session_id" })?.value,
-            let status = components.queryItems?.first(where: { $0.name == "status" })?.value
-        else {
+        guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false) else {
             throw AuthFlowError.invalidCallback
         }
+        let queryItems = components.queryItems ?? []
 
-        if status == "failed" {
-            let message = components.queryItems?.first(where: { $0.name == "message" })?.value
+        if let payload = TrueLayerAPIErrorParser.parse(queryItems: queryItems) {
+            throw TrueLayerAuthError.apiError(payload)
+        }
+
+        if queryItems.first(where: { $0.name == "status" })?.value == "failed" {
+            let message = queryItems.first(where: { $0.name == "message" })?.value
             throw BackendImportError.serverError(message ?? "Authentication failed.")
+        }
+
+        guard let sessionID = queryItems.first(where: { $0.name == "session_id" })?.value else {
+            throw AuthFlowError.invalidCallback
         }
 
         let importResult = try await authClient.fetchImportResult(sessionID: sessionID)
