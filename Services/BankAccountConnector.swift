@@ -12,7 +12,7 @@ import AuthenticationServices
 /// ignorant of OAuth, URL parsing, and backend specifics.
 @MainActor
 protocol BankConnecting: AnyObject {
-    func connect() async throws -> [Transaction]
+    func connect(providerID: String) async throws -> [Transaction]
 }
 
 enum BankConnectionError: LocalizedError {
@@ -34,8 +34,8 @@ final class BankAccountConnector: BankConnecting {
         self.authClient = authClient
     }
 
-    func connect() async throws -> [Transaction] {
-        let startResponse = try await authClient.startAuth()
+    func connect(providerID: String) async throws -> [Transaction] {
+        let startResponse = try await authClient.startAuth(providerID: providerID)
 
         let callbackURL: URL
         do {
@@ -66,6 +66,20 @@ final class BankAccountConnector: BankConnecting {
         }
 
         let importResult = try await authClient.fetchImportResult(sessionID: sessionID)
-        return importResult.transactions
+        return importResult.transactions.map { stamping($0, with: providerID) }
+    }
+
+    private func stamping(_ transaction: Transaction, with providerID: String) -> Transaction {
+        Transaction(
+            id: transaction.id,
+            date: transaction.date,
+            description: transaction.description,
+            merchantName: transaction.merchantName,
+            amount: transaction.amount,
+            currencyCode: transaction.currencyCode,
+            source: transaction.source,
+            category: transaction.category,
+            bankConnectionID: providerID
+        )
     }
 }
