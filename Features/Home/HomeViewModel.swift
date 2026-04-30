@@ -130,10 +130,6 @@ final class HomeViewModel {
 
     // MARK: - Derived connection state
 
-    var connectionState: BankConnectionState {
-        connectionStore.connectionState
-    }
-
     var bannerState: ConnectionBannerState {
         connectionStore.bannerState
     }
@@ -141,6 +137,11 @@ final class HomeViewModel {
     var isImporting: Bool {
         connectionStore.isImporting || (activeImportFlow?.isFinalising ?? false)
     }
+
+    // Until the provider picker lands, every connection attempt is treated as
+    // the same mock bank so the existing single-bank flow keeps working.
+    private static let pendingProviderID = "mock"
+    private static let pendingDisplayName = "Mock Bank"
 
     // MARK: - Manual transaction import
 
@@ -174,14 +175,21 @@ final class HomeViewModel {
     func startBankConnection(onImportSuccess: (() -> Void)? = nil) async {
         activeImportFlow = nil
         self.onImportSuccess = onImportSuccess
-        connectionStore.connectionState = .importing
+        connectionStore.setImporting(
+            providerID: Self.pendingProviderID,
+            displayName: Self.pendingDisplayName
+        )
 
         do {
             let transactions = try await connector.connect()
 
             if transactions.isEmpty {
                 try await transactionRepository.replaceImported(with: [])
-                connectionStore.connectionState = .connected(importedCount: 0)
+                connectionStore.setConnected(
+                    providerID: Self.pendingProviderID,
+                    displayName: Self.pendingDisplayName,
+                    importedCount: 0
+                )
                 self.onImportSuccess?()
                 self.onImportSuccess = nil
                 return
@@ -216,7 +224,11 @@ final class HomeViewModel {
     }
 
     private func handleImportCommitted(count: Int) {
-        connectionStore.connectionState = .connected(importedCount: count)
+        connectionStore.setConnected(
+            providerID: Self.pendingProviderID,
+            displayName: Self.pendingDisplayName,
+            importedCount: count
+        )
         activeImportFlow = nil
         onImportSuccess?()
         onImportSuccess = nil
@@ -232,7 +244,11 @@ final class HomeViewModel {
         activeImportFlow = nil
         onImportSuccess = nil
         let message = error.localizedDescription
-        connectionStore.connectionState = .failed(message)
+        connectionStore.setFailed(
+            providerID: Self.pendingProviderID,
+            displayName: Self.pendingDisplayName,
+            message: message
+        )
         connectionAlert = .serverConnection(message: message)
     }
 
@@ -243,8 +259,8 @@ final class HomeViewModel {
     func handleImportSheetDismissal() {
         guard activeImportFlow == nil else { return }
 
-        if case .importing = connectionStore.connectionState {
-            connectionStore.reset()
+        if connectionStore.isImporting {
+            connectionStore.cancelImporting(providerID: Self.pendingProviderID)
         }
         onImportSuccess = nil
     }
@@ -279,7 +295,11 @@ final class HomeViewModel {
         onImportSuccess = nil
 
         if let payload = TrueLayerAPIErrorParser.parse(from: error) {
-            connectionStore.connectionState = .failed(payload.errorDescription)
+            connectionStore.setFailed(
+                providerID: Self.pendingProviderID,
+                displayName: Self.pendingDisplayName,
+                message: payload.errorDescription
+            )
             connectionAlert = .dataAPIError(
                 title: payload.error.formattedErrorAlertTitle,
                 message: payload.errorDescription
@@ -294,7 +314,11 @@ final class HomeViewModel {
         }
 
         let message = error.localizedDescription
-        connectionStore.connectionState = .failed(message)
+        connectionStore.setFailed(
+            providerID: Self.pendingProviderID,
+            displayName: Self.pendingDisplayName,
+            message: message
+        )
 
         #if DEBUG
         connectionAlert = .serverConnection(message: message)

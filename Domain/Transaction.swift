@@ -20,13 +20,14 @@ struct Transaction: Identifiable, Codable, Hashable {
     let currencyCode: String
     let source: TransactionSource
     let category: TransactionCategory
+    let bankConnectionID: String?
 
     var isDebit: Bool {
         amount < 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, date, description, merchantName, amount, currencyCode, source, category, classification
+        case id, date, description, merchantName, amount, currencyCode, source, category, classification, bankConnectionID
     }
 
     // Backend payloads omit `source` and `category` but include `classification`;
@@ -41,6 +42,7 @@ struct Transaction: Identifiable, Codable, Hashable {
         amount = try c.decode(Double.self, forKey: .amount)
         currencyCode = try c.decode(String.self, forKey: .currencyCode)
         source = try c.decodeIfPresent(TransactionSource.self, forKey: .source) ?? .imported
+        bankConnectionID = try c.decodeIfPresent(String.self, forKey: .bankConnectionID)
 
         if let stored = try c.decodeIfPresent(TransactionCategory.self, forKey: .category) {
             category = stored
@@ -63,11 +65,12 @@ struct Transaction: Identifiable, Codable, Hashable {
         try c.encode(currencyCode, forKey: .currencyCode)
         try c.encode(source, forKey: .source)
         try c.encode(category, forKey: .category)
+        try c.encodeIfPresent(bankConnectionID, forKey: .bankConnectionID)
     }
 
     init(id: String, date: Date, description: String, merchantName: String,
          amount: Double, currencyCode: String, source: TransactionSource,
-         category: TransactionCategory) {
+         category: TransactionCategory, bankConnectionID: String? = nil) {
         self.id = id
         self.date = date
         self.description = description
@@ -76,5 +79,6 @@ struct Transaction: Identifiable, Codable, Hashable {
         self.currencyCode = currencyCode
         self.source = source
         self.category = category
+        self.bankConnectionID = bankConnectionID
     }
 }

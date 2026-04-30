@@ -6,22 +6,32 @@
 //
 import Foundation
 
-enum BankConnectionState: Equatable {
-    case notConnected
-    case importing
-    case connected(importedCount: Int)
-    case failed(String)
+struct BankConnection: Identifiable, Equatable, Codable, Hashable {
+    let id: String
+    let providerID: String
+    var displayName: String
+    var status: Status
+    var importedCount: Int
+    var lastSyncedAt: Date?
 
-    var title: String {
-        switch self {
-        case .notConnected:
-            "Not Connected"
-        case .importing:
-            "Importing"
-        case .connected:
-            "Connected"
-        case .failed:
-            "Import Failed"
-        }
+    enum Status: Equatable, Codable, Hashable {
+        case importing
+        case connected
+        case failed(String)
+    }
+
+    init(
+        providerID: String,
+        displayName: String,
+        status: Status = .importing,
+        importedCount: Int = 0,
+        lastSyncedAt: Date? = nil
+    ) {
+        self.id = providerID
+        self.providerID = providerID
+        self.displayName = displayName
+        self.status = status
+        self.importedCount = importedCount
+        self.lastSyncedAt = lastSyncedAt
     }
 }
