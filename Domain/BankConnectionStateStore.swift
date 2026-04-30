@@ -25,6 +25,8 @@ final class BankConnectionStateStore {
         self.defaults = defaults
         defaults.removeObject(forKey: LegacyBankConnectionStorage.key)
         self.connections = Self.loadPersistedConnections(from: defaults)
+        // Re-persist after filtering to remove any stale .importing entries from storage
+        persist()
     }
 
     // MARK: - Derived
@@ -115,6 +117,12 @@ final class BankConnectionStateStore {
         else {
             return []
         }
-        return connections
+        // Filter out any connections stuck in .importing state - this is a transient
+        // state that should never persist across app launches. If the user closed
+        // the app mid-auth, that flow is dead and should be cleared.
+        return connections.filter { connection in
+            if case .importing = connection.status { return false }
+            return true
+        }
     }
 }
