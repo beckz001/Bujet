@@ -10,10 +10,12 @@ import Foundation
 struct BackendAuthClient {
     let baseURL: URL
 
-    func startAuth() async throws -> AuthStartResponse {
+    func startAuth(providerID: String) async throws -> AuthStartResponse {
         var request = URLRequest(url: baseURL.appending(path: "auth/start"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(AuthStartRequest(providerID: providerID))
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -49,6 +51,14 @@ struct BackendAuthClient {
         }
 
         return try decoder.decode(ImportResultResponse.self, from: data)
+    }
+}
+
+struct AuthStartRequest: Encodable {
+    let providerID: String
+
+    private enum CodingKeys: String, CodingKey {
+        case providerID = "provider_id"
     }
 }
 

@@ -43,8 +43,13 @@ struct HomeView: View {
 
                 HomeConnectionPill(
                     state: viewModel.bannerState,
-                    onTap: connectBankAccount
+                    onTap: presentBankPicker
                 )
+
+                if viewModel.hasAnyConnection {
+                    AddAnotherBankButton(action: presentBankPicker)
+                        .disabled(viewModel.isImporting)
+                }
 
                 RecentTransactionsCard(
                     transactions: viewModel.recentTransactions(),
@@ -105,6 +110,23 @@ struct HomeView: View {
         .sheet(item: $bindableViewModel.activeManualFlow) { flow in
             ManualTransactionSheet(flow: flow)
         }
+        .sheet(isPresented: $bindableViewModel.isPresentingBankPicker) {
+            BankProviderPickerSheet(
+                providers: viewModel.availableProviders,
+                connectedProviderIDs: viewModel.connectedProviderIDs,
+                onSelect: { provider in
+                    Task {
+                        await viewModel.startBankConnection(
+                            provider: provider,
+                            onImportSuccess: onImportSuccess
+                        )
+                    }
+                },
+                onCancel: {
+                    viewModel.dismissBankPicker()
+                }
+            )
+        }
         .alert(item: $bindableViewModel.manualImportResult) { result in
             Alert(
                 title: Text("Import Successful"),
@@ -121,10 +143,8 @@ struct HomeView: View {
         viewModel.startManualImport()
     }
 
-    private func connectBankAccount() {
-        Task {
-            await viewModel.startBankConnection(onImportSuccess: onImportSuccess)
-        }
+    private func presentBankPicker() {
+        viewModel.presentBankPicker()
     }
 
     #if DEBUG

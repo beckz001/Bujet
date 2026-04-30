@@ -138,10 +138,24 @@ final class HomeViewModel {
         connectionStore.isImporting || (activeImportFlow?.isFinalising ?? false)
     }
 
-    // Until the provider picker lands, every connection attempt is treated as
-    // the same mock bank so the existing single-bank flow keeps working.
-    private static let pendingProviderID = "mock"
-    private static let pendingDisplayName = "Mock Bank"
+    var connectedProviderIDs: Set<String> {
+        Set(connectionStore.connections.map(\.providerID))
+    }
+
+    var hasAnyConnection: Bool {
+        connectionStore.hasAnyConnection
+    }
+
+    var availableProviders: [BankProvider] {
+        BankProvider.ukCatalog
+    }
+
+    /// Drives the bank-picker sheet from `HomeView`.
+    var isPresentingBankPicker: Bool = false
+
+    /// Provider currently being connected, used to update the right
+    /// `BankConnection` entry in the store as the flow progresses.
+    @ObservationIgnored private var inFlightProvider: BankProvider?
 
     // MARK: - Manual transaction import
 
@@ -172,24 +186,35 @@ final class HomeViewModel {
 
     // MARK: - Bank connection + import flow
 
-    func startBankConnection(onImportSuccess: (() -> Void)? = nil) async {
+    func presentBankPicker() {
+        isPresentingBankPicker = true
+    }
+
+    func dismissBankPicker() {
+        isPresentingBankPicker = false
+    }
+
+    func startBankConnection(provider: BankProvider, onImportSuccess: (() -> Void)? = nil) async {
         activeImportFlow = nil
         self.onImportSuccess = onImportSuccess
+        inFlightProvider = provider
+        isPresentingBankPicker = false
         connectionStore.setImporting(
-            providerID: Self.pendingProviderID,
-            displayName: Self.pendingDisplayName
+            providerID: provider.id,
+            displayName: provider.displayName
         )
 
         do {
-            let transactions = try await connector.connect()
+            let transactions = try await connector.connect(providerID: provider.id)
 
             if transactions.isEmpty {
                 try await transactionRepository.replaceImported(with: [])
                 connectionStore.setConnected(
-                    providerID: Self.pendingProviderID,
-                    displayName: Self.pendingDisplayName,
+                    providerID: provider.id,
+                    displayName: provider.displayName,
                     importedCount: 0
                 )
+                inFlightProvider = nil
                 self.onImportSuccess?()
                 self.onImportSuccess = nil
                 return
@@ -224,11 +249,14 @@ final class HomeViewModel {
     }
 
     private func handleImportCommitted(count: Int) {
-        connectionStore.setConnected(
-            providerID: Self.pendingProviderID,
-            displayName: Self.pendingDisplayName,
-            importedCount: count
-        )
+        if let provider = inFlightProvider {
+            connectionStore.setConnected(
+                providerID: provider.id,
+                displayName: provider.displayName,
+                importedCount: count
+            )
+        }
+        inFlightProvider = nil
         activeImportFlow = nil
         onImportSuccess?()
         onImportSuccess = nil
@@ -236,7 +264,10 @@ final class HomeViewModel {
 
     private func handleImportCancelled() {
         activeImportFlow = nil
-        connectionStore.reset()
+        if let provider = inFlightProvider {
+            connectionStore.cancelImporting(providerID: provider.id)
+        }
+        inFlightProvider = nil
         onImportSuccess = nil
     }
 
@@ -244,11 +275,14 @@ final class HomeViewModel {
         activeImportFlow = nil
         onImportSuccess = nil
         let message = error.localizedDescription
-        connectionStore.setFailed(
-            providerID: Self.pendingProviderID,
-            displayName: Self.pendingDisplayName,
-            message: message
-        )
+        if let provider = inFlightProvider {
+            connectionStore.setFailed(
+                providerID: provider.id,
+                displayName: provider.displayName,
+                message: message
+            )
+        }
+        inFlightProvider = nil
         connectionAlert = .serverConnection(message: message)
     }
 
@@ -259,9 +293,10 @@ final class HomeViewModel {
     func handleImportSheetDismissal() {
         guard activeImportFlow == nil else { return }
 
-        if connectionStore.isImporting {
-            connectionStore.cancelImporting(providerID: Self.pendingProviderID)
+        if let provider = inFlightProvider, connectionStore.isImporting {
+            connectionStore.cancelImporting(providerID: provider.id)
         }
+        inFlightProvider = nil
         onImportSuccess = nil
     }
 
@@ -295,33 +330,46 @@ final class HomeViewModel {
         onImportSuccess = nil
 
         if let payload = TrueLayerAPIErrorParser.parse(from: error) {
-            connectionStore.setFailed(
-                providerID: Self.pendingProviderID,
-                displayName: Self.pendingDisplayName,
-                message: payload.errorDescription
-            )
+            let provider = inFlightProvider
+            if let provider {
+                connectionStore.setFailed(
+                    providerID: provider.id,
+                    displayName: provider.displayName,
+                    message: payload.errorDescription
+                )
+            }
+            inFlightProvider = nil
             connectionAlert = .dataAPIError(
                 title: payload.error.formattedErrorAlertTitle,
-                message: payload.errorDescription
+                message: Self.diagnostic(for: payload.errorDescription, provider: provider)
             )
             return
         }
 
         if error is BankConnectionError {
             connectionAlert = .connectionCancelled
-            connectionStore.reset()
+            if let provider = inFlightProvider {
+                connectionStore.cancelImporting(providerID: provider.id)
+            }
+            inFlightProvider = nil
             return
         }
 
         let message = error.localizedDescription
-        connectionStore.setFailed(
-            providerID: Self.pendingProviderID,
-            displayName: Self.pendingDisplayName,
-            message: message
-        )
+        let provider = inFlightProvider
+        if let provider {
+            connectionStore.setFailed(
+                providerID: provider.id,
+                displayName: provider.displayName,
+                message: message
+            )
+        }
+        inFlightProvider = nil
 
         #if DEBUG
-        connectionAlert = .serverConnection(message: message)
+        connectionAlert = .serverConnection(
+            message: Self.diagnostic(for: message, provider: provider)
+        )
         #else
         connectionAlert = .serverConnection(
             message: "Unable to connect to the server. Please try again later."
@@ -329,9 +377,19 @@ final class HomeViewModel {
         #endif
     }
 
+    /// In DEBUG builds, prepends the provider_id of the failed connection so
+    /// console-mismatch issues (wrong `ob-<bank>` ID) are easy to spot.
+    private static func diagnostic(for message: String, provider: BankProvider?) -> String {
+        #if DEBUG
+        guard let provider else { return message }
+        return "[provider_id: \(provider.id)] \(message)"
+        #else
+        return message
+        #endif
+    }
+
     func clearErrorAlert() {
         connectionAlert = nil
-        connectionStore.reset()
     }
 
     enum ConnectionAlert: Identifiable, Equatable {
