@@ -12,7 +12,7 @@ import AuthenticationServices
 /// ignorant of OAuth, URL parsing, and backend specifics.
 @MainActor
 protocol BankConnecting: AnyObject {
-    func connect(providerID: String) async throws -> [Transaction]
+    func connect(provider: BankProvider) async throws -> [Transaction]
 }
 
 enum BankConnectionError: LocalizedError {
@@ -34,8 +34,8 @@ final class BankAccountConnector: BankConnecting {
         self.authClient = authClient
     }
 
-    func connect(providerID: String) async throws -> [Transaction] {
-        let startResponse = try await authClient.startAuth(providerID: providerID)
+    func connect(provider: BankProvider) async throws -> [Transaction] {
+        let startResponse = try await authClient.startAuth(providerID: provider.truelayerProviderID)
 
         let callbackURL: URL
         do {
@@ -66,12 +66,16 @@ final class BankAccountConnector: BankConnecting {
         }
 
         let importResult = try await authClient.fetchImportResult(sessionID: sessionID)
-        return importResult.transactions.map { stamping($0, with: providerID) }
+        return importResult.transactions.map { stamping($0, with: provider.id) }
     }
 
-    private func stamping(_ transaction: Transaction, with providerID: String) -> Transaction {
+    /// Re-stamps each transaction with the local connection ID and namespaces
+    /// its `id` so the same mock-bank payload connected under multiple
+    /// providers produces distinct rows instead of colliding on the backend's
+    /// `<account_id>:<txn_id>` key.
+    private func stamping(_ transaction: Transaction, with localProviderID: String) -> Transaction {
         Transaction(
-            id: transaction.id,
+            id: "\(localProviderID)|\(transaction.id)",
             date: transaction.date,
             description: transaction.description,
             merchantName: transaction.merchantName,
@@ -79,7 +83,7 @@ final class BankAccountConnector: BankConnecting {
             currencyCode: transaction.currencyCode,
             source: transaction.source,
             category: transaction.category,
-            bankConnectionID: providerID
+            bankConnectionID: localProviderID
         )
     }
 }

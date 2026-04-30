@@ -205,7 +205,7 @@ final class HomeViewModel {
         )
 
         do {
-            let transactions = try await connector.connect(providerID: provider.id)
+            let transactions = try await connector.connect(provider: provider)
 
             if transactions.isEmpty {
                 try await transactionRepository.replaceImported(with: [])
