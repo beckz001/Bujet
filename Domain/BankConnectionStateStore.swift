@@ -1,5 +1,5 @@
 //
-//  ConnectionStateStore.swift
+//  BankConnectionStateStore.swift
 //  Bujet
 //
 //  Created by Zachary Beck on 28/03/2026.
@@ -15,67 +15,106 @@ final class BankConnectionStateStore {
     private let defaults: UserDefaults
 
     @ObservationIgnored
-    private static let connectionStateKey = "app.connectionState"
+    private static let connectionsKey = "app.bankConnections"
 
-    var connectionState: BankConnectionState = .notConnected {
-        didSet {
-            persistConnectionStateIfNeeded()
-        }
+    var connections: [BankConnection] = [] {
+        didSet { persist() }
     }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.connectionState = Self.loadPersistedConnectionState(from: defaults)
+        defaults.removeObject(forKey: LegacyBankConnectionStorage.key)
+        self.connections = Self.loadPersistedConnections(from: defaults)
     }
 
+    // MARK: - Derived
+
+    var hasAnyConnection: Bool { !connections.isEmpty }
+
     var isImporting: Bool {
-        if case .importing = connectionState {
-            return true
-        }
-        return false
+        connections.contains { $0.status == .importing }
     }
 
     var bannerState: ConnectionBannerState {
-        switch connectionState {
-        case .connected:
+        if connections.isEmpty { return .disconnected }
+        if isImporting { return .dataPending }
+        if connections.contains(where: { if case .connected = $0.status { return true } else { return false } }) {
             return .connected
-        case .importing:
-            return .dataPending
-        case .failed:
-            return .importFailed
-        case .notConnected:
-            return .disconnected
         }
+        if connections.contains(where: { if case .failed = $0.status { return true } else { return false } }) {
+            return .importFailed
+        }
+        return .disconnected
+    }
+
+    func connection(for providerID: String) -> BankConnection? {
+        connections.first { $0.providerID == providerID }
+    }
+
+    // MARK: - Mutations
+
+    func setImporting(providerID: String, displayName: String) {
+        upsert(BankConnection(providerID: providerID, displayName: displayName, status: .importing))
+    }
+
+    func setConnected(providerID: String, displayName: String, importedCount: Int) {
+        var connection = connection(for: providerID)
+            ?? BankConnection(providerID: providerID, displayName: displayName)
+        connection.displayName = displayName
+        connection.status = .connected
+        connection.importedCount = importedCount
+        connection.lastSyncedAt = Date()
+        upsert(connection)
+    }
+
+    func setFailed(providerID: String, displayName: String, message: String) {
+        var connection = connection(for: providerID)
+            ?? BankConnection(providerID: providerID, displayName: displayName)
+        connection.displayName = displayName
+        connection.status = .failed(message)
+        upsert(connection)
+    }
+
+    func remove(providerID: String) {
+        connections.removeAll { $0.providerID == providerID }
+    }
+
+    /// Drops the in-flight import, used when the user cancels mid-flow.
+    func cancelImporting(providerID: String) {
+        guard let existing = connection(for: providerID), existing.status == .importing else { return }
+        remove(providerID: providerID)
     }
 
     func reset() {
-        connectionState = .notConnected
+        connections = []
     }
 
     // MARK: - Persistence
 
-    private func persistConnectionStateIfNeeded() {
-        guard let persisted = connectionState.persistedValue else {
-            // Don't persist transient in-flight importing state
-            return
-        }
-
-        do {
-            let data = try JSONEncoder().encode(persisted)
-            defaults.set(data, forKey: Self.connectionStateKey)
-        } catch {
-            print("Failed to persist connection state:", error)
+    private func upsert(_ connection: BankConnection) {
+        if let index = connections.firstIndex(where: { $0.providerID == connection.providerID }) {
+            connections[index] = connection
+        } else {
+            connections.append(connection)
         }
     }
 
-    private static func loadPersistedConnectionState(from defaults: UserDefaults) -> BankConnectionState {
-        guard
-            let data = defaults.data(forKey: connectionStateKey),
-            let persisted = try? JSONDecoder().decode(PersistedConnectionState.self, from: data)
-        else {
-            return .notConnected
+    private func persist() {
+        do {
+            let data = try JSONEncoder().encode(connections)
+            defaults.set(data, forKey: Self.connectionsKey)
+        } catch {
+            print("Failed to persist bank connections:", error)
         }
+    }
 
-        return .fromPersisted(persisted)
+    private static func loadPersistedConnections(from defaults: UserDefaults) -> [BankConnection] {
+        guard
+            let data = defaults.data(forKey: connectionsKey),
+            let connections = try? JSONDecoder().decode([BankConnection].self, from: data)
+        else {
+            return []
+        }
+        return connections
     }
 }
