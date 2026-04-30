@@ -10,10 +10,11 @@ struct TransactionInsights {
         self.calendar = calendar
     }
 
-    /// Transactions whose date falls within the calendar month containing `month`.
+    /// Spending transactions (debits) whose date falls within the calendar month
+    /// containing `month`. Credits are excluded so insights aggregate outflows only.
     func transactions(in month: Date, from all: [Transaction]) -> [Transaction] {
         guard let interval = calendar.dateInterval(of: .month, for: month) else { return [] }
-        return all.filter { interval.contains($0.date) }
+        return all.filter { $0.isDebit && interval.contains($0.date) }
     }
 
     /// Total spend (positive value) in the month.
