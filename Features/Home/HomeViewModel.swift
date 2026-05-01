@@ -330,18 +330,13 @@ final class HomeViewModel {
         onImportSuccess = nil
 
         if let payload = TrueLayerAPIErrorParser.parse(from: error) {
-            let provider = inFlightProvider
-            if let provider {
-                connectionStore.setFailed(
-                    providerID: provider.id,
-                    displayName: provider.displayName,
-                    message: payload.errorDescription
-                )
+            if let provider = inFlightProvider {
+                connectionStore.cancelImporting(providerID: provider.id)
             }
             inFlightProvider = nil
             connectionAlert = .dataAPIError(
                 title: payload.error.formattedErrorAlertTitle,
-                message: Self.diagnostic(for: payload.errorDescription, provider: provider)
+                message: payload.errorDescription
             )
             return
         }
@@ -355,36 +350,17 @@ final class HomeViewModel {
             return
         }
 
-        let message = error.localizedDescription
-        let provider = inFlightProvider
-        if let provider {
-            connectionStore.setFailed(
-                providerID: provider.id,
-                displayName: provider.displayName,
-                message: message
-            )
+        if let provider = inFlightProvider {
+            connectionStore.cancelImporting(providerID: provider.id)
         }
         inFlightProvider = nil
 
         #if DEBUG
-        connectionAlert = .serverConnection(
-            message: Self.diagnostic(for: message, provider: provider)
-        )
+        connectionAlert = .serverConnection(message: error.localizedDescription)
         #else
         connectionAlert = .serverConnection(
             message: "Unable to connect to the server. Please try again later."
         )
-        #endif
-    }
-
-    /// In DEBUG builds, prepends the provider_id of the failed connection so
-    /// console-mismatch issues (wrong `ob-<bank>` ID) are easy to spot.
-    private static func diagnostic(for message: String, provider: BankProvider?) -> String {
-        #if DEBUG
-        guard let provider else { return message }
-        return "[provider_id: \(provider.id)] \(message)"
-        #else
-        return message
         #endif
     }
 
