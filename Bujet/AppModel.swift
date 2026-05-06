@@ -7,6 +7,8 @@ final class AppModel {
     @ObservationIgnored
     private let connectionStore: BankConnectionStateStore
     @ObservationIgnored
+    let transactionRepository: any TransactionRepository
+    @ObservationIgnored
     let budgetRepository: any BudgetRepository
     @ObservationIgnored
     let goalRepository: any GoalRepository
@@ -33,6 +35,7 @@ final class AppModel {
         let connectionStore = BankConnectionStateStore(defaults: defaults)
         let connector = BankAccountConnector(authClient: authClient)
         self.connectionStore = connectionStore
+        self.transactionRepository = transactionRepository
         self.budgetRepository = budgetRepository
         self.goalRepository = goalRepository
         self.interventionLogRepository = interventionLogRepository
@@ -80,14 +83,18 @@ final class AppModel {
 
     func makePreSpendInterventionFlow(
         onPotsChanged: @escaping () -> Void = {},
+        onTransactionsChanged: @escaping () -> Void = {},
         onShowCoachRequested: @escaping () -> Void = {},
         onDismissRequested: @escaping () -> Void
     ) -> PreSpendInterventionFlow {
         PreSpendInterventionFlow(
             useCase: preSpendInterventionUseCase,
             goalRepository: goalRepository,
+            budgetRepository: budgetRepository,
+            transactionRepository: transactionRepository,
             currencyCode: insightsViewModel.currencyCode,
             onPotsChanged: onPotsChanged,
+            onTransactionsChanged: onTransactionsChanged,
             onShowCoachRequested: onShowCoachRequested,
             onDismissRequested: onDismissRequested
         )

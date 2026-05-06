@@ -6,6 +6,7 @@ import Foundation
 struct Goal: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
+    var notes: String?
     var targetAmount: Double
     var savedAmount: Double
     var currencyCode: String
@@ -16,6 +17,7 @@ struct Goal: Identifiable, Codable, Hashable {
     init(
         id: UUID = UUID(),
         name: String,
+        notes: String? = nil,
         targetAmount: Double,
         savedAmount: Double = 0,
         currencyCode: String = "GBP",
@@ -25,6 +27,7 @@ struct Goal: Identifiable, Codable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.notes = notes
         self.targetAmount = targetAmount
         self.savedAmount = savedAmount
         self.currencyCode = currencyCode

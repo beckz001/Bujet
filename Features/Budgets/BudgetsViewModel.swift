@@ -48,6 +48,16 @@ final class BudgetsViewModel: Identifiable {
         drafts[category] = value.sanitisedAmount
     }
 
+    func clearAll() {
+        for category in TransactionCategory.allCases {
+            drafts[category] = ""
+        }
+    }
+
+    var hasAnyValue: Bool {
+        drafts.values.contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
     func save() async -> Bool {
         validationMessage = nil
         var book = BudgetBook()

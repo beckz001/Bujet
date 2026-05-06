@@ -19,6 +19,9 @@ struct PreSpendInterventionSheet: View {
             }
         }
         .interactiveDismissDisabled(flow.isEvaluating || flow.isRecording)
+        .sheet(item: $flow.presentedBudgetsViewModel) { vm in
+            BudgetsSheet(viewModel: vm)
+        }
     }
 
     @ViewBuilder

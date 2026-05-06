@@ -11,8 +11,7 @@ final class PotEditorViewModel: Identifiable {
 
     var name: String = ""
     var targetAmountText: String = ""
-    var category: TransactionCategory = .other
-    var isWishlist: Bool = false
+    var notesText: String = ""
     var currencyCode: String = "GBP"
     var isSaving: Bool = false
     var validationMessage: String?
@@ -43,21 +42,18 @@ final class PotEditorViewModel: Identifiable {
             validationMessage = "Enter a target amount."
             return false
         }
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
             validationMessage = "Name your pot."
             return false
         }
-
-        let item: WishlistItem? = isWishlist
-            ? WishlistItem(itemName: trimmed, estimatedCost: target, category: category, currencyCode: currencyCode)
-            : nil
+        let trimmedNotes = notesText.trimmingCharacters(in: .whitespaces)
 
         let goal = Goal(
-            name: trimmed,
+            name: trimmedName,
+            notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             targetAmount: target,
-            currencyCode: currencyCode,
-            linkedItem: item
+            currencyCode: currencyCode
         )
 
         isSaving = true

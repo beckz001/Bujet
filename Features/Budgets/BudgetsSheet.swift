@@ -3,6 +3,7 @@ import SwiftUI
 struct BudgetsSheet: View {
     @Bindable var viewModel: BudgetsViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showClearConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -25,8 +26,31 @@ struct BudgetsSheet: View {
                             )
                         }
                     }
+
+                    Button(role: .destructive) {
+                        showClearConfirmation = true
+                    } label: {
+                        Label("Clear all", systemImage: "arrow.counterclockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .disabled(!viewModel.hasAnyValue || viewModel.isSaving)
+                    .padding(.top, 4)
                 }
                 .padding()
+            }
+            .confirmationDialog(
+                "Clear all budgets?",
+                isPresented: $showClearConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Clear all", role: .destructive) {
+                    viewModel.clearAll()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Tap Save afterwards to apply.")
             }
             .background(AppPalette.background.ignoresSafeArea())
             .navigationTitle("Budgets")

@@ -32,6 +32,13 @@ struct MainTabView: View {
                             onPotsChanged: {
                                 Task { await appModel.coachViewModel.refresh() }
                             },
+                            onTransactionsChanged: {
+                                Task {
+                                    await appModel.homeViewModel.refresh()
+                                    await appModel.transactionsViewModel.refresh()
+                                    await appModel.insightsViewModel.refresh()
+                                }
+                            },
                             onShowCoachRequested: {
                                 appModel.selectedTab = .coach
                             },

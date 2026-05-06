@@ -147,10 +147,6 @@ private struct PotRow: View {
                         Label("Wishlist", systemImage: "leaf.fill")
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.green)
-                    } else {
-                        Label("Goal", systemImage: "flag.fill")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.blue)
                     }
                     Spacer()
                     if goal.isComplete {
@@ -163,9 +159,16 @@ private struct PotRow: View {
                     }
                 }
 
-                Text(goal.name)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(goal.name)
+                        .font(.headline)
+                    if let notes = goal.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 ProgressView(value: goal.progress)
                     .tint(AppPalette.progressFill)
