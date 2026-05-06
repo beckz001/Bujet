@@ -51,6 +51,26 @@ struct PauseReflectInputView: View {
             }
             .padding(20)
         }
+        .alert(
+            "No \(flow.noBudgetCategory?.displayName ?? "") budget set",
+            isPresented: Binding(
+                get: { flow.noBudgetCategory != nil },
+                set: { if !$0 { flow.noBudgetCategory = nil } }
+            ),
+            presenting: flow.noBudgetCategory
+        ) { _ in
+            Button("Set a budget") {
+                flow.requestSetBudget()
+            }
+            Button("Continue without") {
+                Task { await flow.continueWithoutBudget() }
+            }
+            Button("Cancel", role: .cancel) {
+                flow.noBudgetCategory = nil
+            }
+        } message: { category in
+            Text("Setting a monthly cap for \(category.displayName.lowercased()) makes the reflection much more meaningful. Want to set one now?")
+        }
     }
 
     private var amountField: some View {

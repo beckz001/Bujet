@@ -34,19 +34,17 @@ struct PotEditorSheet: View {
 
                         Divider()
 
-                        Toggle("Save toward a specific item", isOn: $viewModel.isWishlist)
-
-                        if viewModel.isWishlist {
-                            Divider()
-                            Picker(selection: $viewModel.category) {
-                                ForEach(TransactionCategory.allCases) { category in
-                                    Label(category.displayName, systemImage: category.systemImage)
-                                        .tag(category)
-                                }
-                            } label: {
-                                Text("Category")
-                            }
-                            .pickerStyle(.menu)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("What are you saving for?")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            TextField(
+                                "e.g. Long weekend in Lisbon",
+                                text: $viewModel.notesText,
+                                axis: .vertical
+                            )
+                            .textInputAutocapitalization(.sentences)
+                            .lineLimit(2...4)
                         }
                     }
                     .padding()

@@ -16,8 +16,12 @@ final class PreSpendInterventionFlow: Identifiable {
     @ObservationIgnored let id = UUID()
     @ObservationIgnored private let useCase: PreSpendInterventionUseCase
     @ObservationIgnored private let goalRepository: any GoalRepository
+    @ObservationIgnored private let budgetRepository: any BudgetRepository
+    @ObservationIgnored private let transactionRepository: any TransactionRepository
+    @ObservationIgnored private let waitReminderScheduler: WaitReminderScheduler
     @ObservationIgnored private let onDismissRequested: () -> Void
     @ObservationIgnored private let onPotsChanged: () -> Void
+    @ObservationIgnored private let onTransactionsChanged: () -> Void
     @ObservationIgnored private let onShowCoachRequested: () -> Void
 
     var step: PreSpendInterventionStep = .input
@@ -28,6 +32,12 @@ final class PreSpendInterventionFlow: Identifiable {
     var category: TransactionCategory = .shopping
     var currencyCode: String = "GBP"
     var inputErrorMessage: String?
+
+    // No-budget alert state
+    var noBudgetCategory: TransactionCategory?
+    /// Set when the user taps "Set a budget" — drives a sheet-on-sheet
+    /// presentation of `BudgetsSheet` from inside this flow.
+    var presentedBudgetsViewModel: BudgetsViewModel?
 
     // Evaluation
     var isEvaluating: Bool = false
@@ -40,15 +50,23 @@ final class PreSpendInterventionFlow: Identifiable {
     init(
         useCase: PreSpendInterventionUseCase,
         goalRepository: some GoalRepository,
+        budgetRepository: some BudgetRepository,
+        transactionRepository: some TransactionRepository,
+        waitReminderScheduler: WaitReminderScheduler = WaitReminderScheduler(),
         currencyCode: String = "GBP",
         onPotsChanged: @escaping () -> Void = {},
+        onTransactionsChanged: @escaping () -> Void = {},
         onShowCoachRequested: @escaping () -> Void = {},
         onDismissRequested: @escaping () -> Void
     ) {
         self.useCase = useCase
         self.goalRepository = goalRepository
+        self.budgetRepository = budgetRepository
+        self.transactionRepository = transactionRepository
+        self.waitReminderScheduler = waitReminderScheduler
         self.currencyCode = currencyCode
         self.onPotsChanged = onPotsChanged
+        self.onTransactionsChanged = onTransactionsChanged
         self.onShowCoachRequested = onShowCoachRequested
         self.onDismissRequested = onDismissRequested
     }
@@ -59,25 +77,71 @@ final class PreSpendInterventionFlow: Identifiable {
         && (Double(amountText) ?? 0) > 0
     }
 
+    /// First step of the input flow. If no budget is set for the chosen
+    /// category we surface a friendly alert before evaluating, since the
+    /// reflection lands much more meaningfully against a budget.
     func submitInput() async {
         inputErrorMessage = nil
         evaluationErrorMessage = nil
-        guard let amount = Double(amountText), amount > 0 else {
-            inputErrorMessage = "Enter a valid amount."
-            return
-        }
-        let trimmedDescription = itemDescription.trimmingCharacters(in: .whitespaces)
-        guard !trimmedDescription.isEmpty else {
-            inputErrorMessage = "Add a short description."
+        guard validateInput() else { return }
+
+        let book = await budgetRepository.fetch()
+        if !book.hasLimit(for: category) {
+            noBudgetCategory = category
             return
         }
 
-        let proposal = InterventionProposal(
+        await runEvaluation()
+    }
+
+    /// Continue past the no-budget alert without setting one.
+    func continueWithoutBudget() async {
+        noBudgetCategory = nil
+        await runEvaluation()
+    }
+
+    /// User opted to set a budget — present the BudgetsSheet on top of this
+    /// sheet. The flow itself stays put with all input intact, so on save the
+    /// user just taps Reflect again.
+    func requestSetBudget() {
+        noBudgetCategory = nil
+        presentedBudgetsViewModel = BudgetsViewModel(
+            budgetRepository: budgetRepository,
+            currencyCode: currencyCode,
+            onSaved: { [weak self] in
+                self?.presentedBudgetsViewModel = nil
+            }
+        )
+    }
+
+    private func validateInput() -> Bool {
+        guard (Double(amountText) ?? 0) > 0 else {
+            inputErrorMessage = "Enter a valid amount."
+            return false
+        }
+        let trimmed = itemDescription.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            inputErrorMessage = "Add a short description."
+            return false
+        }
+        itemDescription = trimmed
+        return true
+    }
+
+    private func makeProposal() -> InterventionProposal? {
+        guard let amount = Double(amountText), amount > 0 else { return nil }
+        let trimmed = itemDescription.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        return InterventionProposal(
             amount: amount,
-            itemDescription: trimmedDescription,
+            itemDescription: trimmed,
             category: category,
             currencyCode: currencyCode
         )
+    }
+
+    private func runEvaluation() async {
+        guard let proposal = makeProposal() else { return }
 
         isEvaluating = true
         defer { isEvaluating = false }
@@ -90,11 +154,16 @@ final class PreSpendInterventionFlow: Identifiable {
         }
     }
 
+    /// Persist Buy now both as an intervention log AND as an actual transaction
+    /// so the user's spending records reflect what they did.
     func chooseBuyNow() async {
         guard let decision else { return }
         isRecording = true
         defer { isRecording = false }
+
         try? await useCase.recordDecision(for: decision, action: .buyNow)
+        await persistBuyNowTransaction(for: decision)
+        onTransactionsChanged()
         onDismissRequested()
     }
 
@@ -102,12 +171,15 @@ final class PreSpendInterventionFlow: Identifiable {
         guard let decision else { return }
         isRecording = true
         defer { isRecording = false }
+
         try? await useCase.recordDecision(for: decision, action: .wait(duration))
+        await waitReminderScheduler.schedule(
+            for: decision.proposal,
+            duration: duration
+        )
         step = .waitConfirmed(duration)
     }
 
-    /// Creates a Wishlist Pot from the current decision and records the
-    /// "addToPot" intervention action.
     func chooseAddToPot() async {
         guard let decision else { return }
         isRecording = true
@@ -144,5 +216,21 @@ final class PreSpendInterventionFlow: Identifiable {
     func dismissAndShowCoach() {
         onShowCoachRequested()
         onDismissRequested()
+    }
+
+    // MARK: - Helpers
+
+    private func persistBuyNowTransaction(for decision: InterventionDecision) async {
+        let transaction = Transaction(
+            id: "intervention-\(decision.proposal.id.uuidString)",
+            date: .now,
+            description: decision.proposal.itemDescription,
+            merchantName: decision.proposal.itemDescription,
+            amount: -abs(decision.proposal.amount),
+            currencyCode: decision.proposal.currencyCode,
+            source: .manual,
+            category: decision.proposal.category
+        )
+        try? await transactionRepository.add([transaction])
     }
 }
