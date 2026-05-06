@@ -6,21 +6,48 @@ import Observation
 final class AppModel {
     @ObservationIgnored
     private let connectionStore: BankConnectionStateStore
+    @ObservationIgnored
+    let budgetRepository: any BudgetRepository
+    @ObservationIgnored
+    let goalRepository: any GoalRepository
+    @ObservationIgnored
+    let interventionLogRepository: any InterventionLogRepository
+    @ObservationIgnored
+    let preSpendInterventionUseCase: PreSpendInterventionUseCase
 
     var selectedTab: TabModel = .home
 
     let homeViewModel: HomeViewModel
     let transactionsViewModel: TransactionsViewModel
     let insightsViewModel: InsightsViewModel
+    let coachViewModel: CoachViewModel
 
     init(
         transactionRepository: some TransactionRepository,
+        budgetRepository: some BudgetRepository,
+        goalRepository: some GoalRepository,
+        interventionLogRepository: some InterventionLogRepository,
         authClient: BackendAuthClient,
         defaults: UserDefaults = .standard
     ) {
         let connectionStore = BankConnectionStateStore(defaults: defaults)
         let connector = BankAccountConnector(authClient: authClient)
         self.connectionStore = connectionStore
+        self.budgetRepository = budgetRepository
+        self.goalRepository = goalRepository
+        self.interventionLogRepository = interventionLogRepository
+
+        let contextProvider = SpendingContextProvider(
+            transactionRepository: transactionRepository,
+            budgetRepository: budgetRepository,
+            goalRepository: goalRepository,
+            interventionLogRepository: interventionLogRepository
+        )
+        self.preSpendInterventionUseCase = PreSpendInterventionUseCase(
+            contextProvider: contextProvider,
+            narrativeService: LLMServiceFactory.make(),
+            interventionLogRepository: interventionLogRepository
+        )
 
         self.homeViewModel = HomeViewModel(
             transactionRepository: transactionRepository,
@@ -33,7 +60,55 @@ final class AppModel {
         )
 
         self.insightsViewModel = InsightsViewModel(
-            transactionRepository: transactionRepository
+            transactionRepository: transactionRepository,
+            budgetRepository: budgetRepository
+        )
+
+        self.coachViewModel = CoachViewModel(
+            goalRepository: goalRepository,
+            interventionLogRepository: interventionLogRepository
+        )
+    }
+
+    func makeBudgetsViewModel(onSaved: @escaping () -> Void = {}) -> BudgetsViewModel {
+        BudgetsViewModel(
+            budgetRepository: budgetRepository,
+            currencyCode: insightsViewModel.currencyCode,
+            onSaved: onSaved
+        )
+    }
+
+    func makePreSpendInterventionFlow(
+        onPotsChanged: @escaping () -> Void = {},
+        onShowCoachRequested: @escaping () -> Void = {},
+        onDismissRequested: @escaping () -> Void
+    ) -> PreSpendInterventionFlow {
+        PreSpendInterventionFlow(
+            useCase: preSpendInterventionUseCase,
+            goalRepository: goalRepository,
+            currencyCode: insightsViewModel.currencyCode,
+            onPotsChanged: onPotsChanged,
+            onShowCoachRequested: onShowCoachRequested,
+            onDismissRequested: onDismissRequested
+        )
+    }
+
+    func makePotEditorViewModel(onSaved: @escaping () -> Void = {}) -> PotEditorViewModel {
+        PotEditorViewModel(
+            goalRepository: goalRepository,
+            currencyCode: coachViewModel.currencyCode,
+            onSaved: onSaved
+        )
+    }
+
+    func makePotContributionViewModel(
+        for goal: Goal,
+        onContributed: @escaping () -> Void = {}
+    ) -> PotContributionViewModel {
+        PotContributionViewModel(
+            goal: goal,
+            goalRepository: goalRepository,
+            onContributed: onContributed
         )
     }
 }

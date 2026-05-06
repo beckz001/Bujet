@@ -12,6 +12,7 @@ struct HomeView: View {
     let viewModel: HomeViewModel
     let onImportSuccess: () -> Void
     let onSeeAllTapped: () -> Void
+    let onPauseReflectTapped: () -> Void
 
     #if DEBUG
     @State private var showingClearImportedAlert = false
@@ -31,6 +32,8 @@ struct HomeView: View {
                     daysRemaining: viewModel.daysRemainingMonth(),
                     monthProgress: viewModel.monthProgress
                 )
+
+                PauseReflectCTA(action: onPauseReflectTapped)
 
                 HStack(spacing: 16) {
                     TodaySpentTile(

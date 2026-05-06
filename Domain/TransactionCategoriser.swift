@@ -45,7 +45,12 @@ enum TransactionCategoriser {
         ("fuel",           .transport),
         ("gas station",    .transport),
         ("petrol",         .transport),
-        ("parking",        .transport)
+        ("parking",        .transport),
+        ("clothing",       .shopping),
+        ("apparel",        .shopping),
+        ("shopping",       .shopping),
+        ("retail",         .shopping),
+        ("electronics",    .shopping)
     ]
 
     // MARK: - Merchant keyword fallback (UK-leaning)
@@ -129,6 +134,31 @@ enum TransactionCategoriser {
         ("amazon prime",  .bills),
         ("apple.com/bill", .bills),
         ("tesco mobile ltd", .bills),
-        ("council tax",   .bills)
+        ("council tax",   .bills),
+
+        // Shopping (impulse-buy targets)
+        ("nike",          .shopping),
+        ("adidas",        .shopping),
+        ("asos",          .shopping),
+        ("zara",          .shopping),
+        ("h&m",           .shopping),
+        ("uniqlo",        .shopping),
+        ("primark",       .shopping),
+        ("next ",         .shopping),
+        ("jd sports",     .shopping),
+        ("sports direct", .shopping),
+        ("foot locker",   .shopping),
+        ("size?",         .shopping),
+        ("end.",          .shopping),
+        ("amazon",        .shopping),
+        ("ebay",          .shopping),
+        ("argos",         .shopping),
+        ("currys",        .shopping),
+        ("apple store",   .shopping),
+        ("john lewis",    .shopping),
+        ("ikea",          .shopping),
+        ("boots",         .shopping),
+        ("superdrug",     .shopping),
+        ("sephora",       .shopping)
     ]
 }
