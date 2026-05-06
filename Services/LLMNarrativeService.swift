@@ -16,15 +16,33 @@ enum SuggestedAction: String, Codable, Hashable, Sendable {
     }
 }
 
+/// Where a generated narrative came from. Useful for the demo so the
+/// presenter can point to whether the on-device model fired or the template
+/// fallback was used.
+enum NarrativeSource: String, Codable, Hashable, Sendable {
+    case onDeviceLLM
+    case template
+
+    var displayLabel: String {
+        switch self {
+        case .onDeviceLLM: "On-device AI"
+        case .template:    "Coach"
+        }
+    }
+}
+
 /// Pure narrative output produced by the LLM (or the template fallback).
 /// Numbers are *not* part of this — they live in the deterministic
-/// `ImpactSummary`. Annotated `@Generable` in `FoundationModelsNarrativeService`.
+/// `ImpactSummary`.
 struct InterventionNarrative: Hashable, Sendable {
     /// 1–3 short sentences. Personal, second-person, no fabricated numbers.
     var narrative: String
     /// Which of the three actions the model recommends. UI uses this only as
     /// a soft hint — the user always makes the final choice.
     var suggestedAction: SuggestedAction
+    /// Engine that produced this narrative. Defaults to `.template` so
+    /// existing call sites stay unaffected.
+    var source: NarrativeSource = .template
 }
 
 /// Boundary that the rest of the app talks to. Two implementations:

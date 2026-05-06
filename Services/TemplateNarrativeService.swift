@@ -58,7 +58,11 @@ struct TemplateNarrativeService: LLMNarrativeService {
             }
         }
 
-        return InterventionNarrative(narrative: narrative, suggestedAction: action)
+        return InterventionNarrative(
+            narrative: narrative,
+            suggestedAction: action,
+            source: .template
+        )
     }
 
     // MARK: - Helpers
