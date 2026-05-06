@@ -5,6 +5,7 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable, Hashable 
     case eatingOut = "eating_out"
     case groceries
     case transport
+    case shopping
     case other
 
     var id: String { rawValue }
@@ -15,6 +16,7 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable, Hashable 
         case .eatingOut: "Eating out"
         case .groceries: "Groceries"
         case .transport: "Transport"
+        case .shopping:  "Shopping"
         case .other:     "Other"
         }
     }
@@ -25,6 +27,7 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable, Hashable 
         case .eatingOut: "fork.knife"
         case .groceries: "cart"
         case .transport: "car"
+        case .shopping:  "bag"
         case .other:     "square.grid.2x2"
         }
     }
@@ -35,6 +38,7 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable, Hashable 
         case .eatingOut: Color(hex: "C7E84A")
         case .groceries: Color(hex: "F7C59F")
         case .transport: Color(hex: "FF6B35")
+        case .shopping:  Color(hex: "EC4899")
         case .other:     Color(hex: "9A7197")
         }
     }

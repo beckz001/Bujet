@@ -2,6 +2,9 @@ import SwiftUI
 
 struct InsightsView: View {
     let viewModel: InsightsViewModel
+    let makeBudgetsViewModel: (@escaping () -> Void) -> BudgetsViewModel
+
+    @State private var presentedBudgetsViewModel: BudgetsViewModel?
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
@@ -58,6 +61,16 @@ struct InsightsView: View {
                 Text("Insights")
                     .font(.custom("InstrumentSerif-Italic", size: 34))
             }
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    presentedBudgetsViewModel = makeBudgetsViewModel {
+                        Task { await viewModel.reloadBudgets() }
+                    }
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .accessibilityLabel("Set budgets")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 InsightsMonthPicker(
                     selectedMonth: $bindableViewModel.selectedMonth,
@@ -67,5 +80,8 @@ struct InsightsView: View {
         }
         .task { await viewModel.loadTransactions() }
         .refreshable { await viewModel.refresh() }
+        .sheet(item: $presentedBudgetsViewModel) { vm in
+            BudgetsSheet(viewModel: vm)
+        }
     }
 }

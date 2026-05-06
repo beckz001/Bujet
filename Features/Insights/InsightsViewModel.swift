@@ -5,20 +5,29 @@ import Observation
 @Observable
 final class InsightsViewModel {
     @ObservationIgnored private let transactionRepository: any TransactionRepository
+    @ObservationIgnored private let budgetRepository: any BudgetRepository
     @ObservationIgnored private let insights = TransactionInsights()
     @ObservationIgnored private let calendar = Calendar.current
 
     var transactions: [Transaction] = []
+    var budgets: BudgetBook = BudgetBook()
     var selectedMonth: Date = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
 
-    init(transactionRepository: some TransactionRepository) {
+    init(
+        transactionRepository: some TransactionRepository,
+        budgetRepository: some BudgetRepository
+    ) {
         self.transactionRepository = transactionRepository
+        self.budgetRepository = budgetRepository
     }
 
     // MARK: - Lifecycle
 
     func loadTransactions() async {
-        transactions = await transactionRepository.fetchAll()
+        async let txs = transactionRepository.fetchAll()
+        async let book = budgetRepository.fetch()
+        transactions = await txs
+        budgets = await book
         if !availableMonths.contains(selectedMonth) {
             selectedMonth = availableMonths.first ?? selectedMonth
         }
@@ -26,6 +35,16 @@ final class InsightsViewModel {
 
     func refresh() async {
         await loadTransactions()
+    }
+
+    func reloadBudgets() async {
+        budgets = await budgetRepository.fetch()
+    }
+
+    // MARK: - Budgets
+
+    func budgetLimit(for category: TransactionCategory) -> Double? {
+        budgets.limit(for: category)
     }
 
     // MARK: - Month picker

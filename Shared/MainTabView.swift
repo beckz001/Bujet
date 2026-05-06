@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Bindable var appModel: AppModel
+    @State private var pauseReflectFlow: PreSpendInterventionFlow?
 
     var body: some View {
         TabView(selection: $appModel.selectedTab) {
@@ -25,6 +26,17 @@ struct MainTabView: View {
                     },
                     onSeeAllTapped: {
                         appModel.selectedTab = .transactions
+                    },
+                    onPauseReflectTapped: {
+                        pauseReflectFlow = appModel.makePreSpendInterventionFlow(
+                            onPotsChanged: {
+                                Task { await appModel.coachViewModel.refresh() }
+                            },
+                            onShowCoachRequested: {
+                                appModel.selectedTab = .coach
+                            },
+                            onDismissRequested: { pauseReflectFlow = nil }
+                        )
                     }
                 )
             }
@@ -34,7 +46,28 @@ struct MainTabView: View {
             .tag(TabModel.home)
 
             NavigationStack {
-                InsightsView(viewModel: appModel.insightsViewModel)
+                CoachView(
+                    viewModel: appModel.coachViewModel,
+                    makePotEditorViewModel: { onSaved in
+                        appModel.makePotEditorViewModel(onSaved: onSaved)
+                    },
+                    makePotContributionViewModel: { goal, onContributed in
+                        appModel.makePotContributionViewModel(for: goal, onContributed: onContributed)
+                    }
+                )
+            }
+            .tabItem {
+                Label("Coach", systemImage: "sparkles")
+            }
+            .tag(TabModel.coach)
+
+            NavigationStack {
+                InsightsView(
+                    viewModel: appModel.insightsViewModel,
+                    makeBudgetsViewModel: { onSaved in
+                        appModel.makeBudgetsViewModel(onSaved: onSaved)
+                    }
+                )
             }
             .tabItem {
                 Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
@@ -49,6 +82,8 @@ struct MainTabView: View {
             }
             .tag(TabModel.transactions)
         }
+        .sheet(item: $pauseReflectFlow) { flow in
+            PreSpendInterventionSheet(flow: flow)
+        }
     }
 }
-

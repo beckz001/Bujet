@@ -8,6 +8,7 @@ import Foundation
 
 enum TabModel: Hashable {
     case home
+    case coach
     case insights
     case transactions
 }

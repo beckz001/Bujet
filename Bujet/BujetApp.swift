@@ -10,6 +10,9 @@ import SwiftUI
 struct BujetApp: App {
     @State private var appModel = AppModel(
         transactionRepository: LocalTransactionRepository(),
+        budgetRepository: LocalBudgetRepository(),
+        goalRepository: LocalGoalRepository(),
+        interventionLogRepository: LocalInterventionLogRepository(),
         authClient: BackendAuthClient(baseURL: BackendConfiguration.baseURL)
     )
 
