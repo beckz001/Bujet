@@ -1,13 +1,38 @@
 import Foundation
+import FoundationModels
+import os
 
-/// Returns the appropriate `LLMNarrativeService` implementation at startup.
-/// In Phase 1A this only wires up the template fallback; the
-/// `FoundationModelsNarrativeService` path is added in Phase 1D and selected
-/// here based on `SystemLanguageModel.default.availability`.
+/// Returns the appropriate `LLMNarrativeService` implementation. We pick
+/// `FoundationModelsNarrativeService` when the on-device model reports as
+/// `.available`, otherwise fall back to `TemplateNarrativeService`. The
+/// rest of the app is oblivious — both implementations satisfy the same
+/// protocol contract.
+///
+/// Selection happens **per call** (not once at startup) so that if Apple
+/// Intelligence finishes downloading or is enabled while the app is open,
+/// the LLM kicks in on the very next reflect — no app restart needed.
 enum LLMServiceFactory {
     static func make() -> any LLMNarrativeService {
-        // TODO (Phase 1D): if iOS 26+ and SystemLanguageModel availability == .available,
-        // return FoundationModelsNarrativeService() instead.
-        return TemplateNarrativeService()
+        DynamicNarrativeService()
+    }
+}
+
+private struct DynamicNarrativeService: LLMNarrativeService {
+    private static let logger = Logger(subsystem: "com.bujet", category: "LLM")
+
+    func generateInterventionNarrative(
+        facts: SpendingFacts,
+        impact: ImpactSummary
+    ) async throws -> InterventionNarrative {
+        let availability = SystemLanguageModel.default.availability
+        Self.logger.info("FoundationModels availability: \(String(describing: availability), privacy: .public)")
+
+        if case .available = availability {
+            return try await FoundationModelsNarrativeService()
+                .generateInterventionNarrative(facts: facts, impact: impact)
+        }
+        Self.logger.info("Falling back to TemplateNarrativeService.")
+        return try await TemplateNarrativeService()
+            .generateInterventionNarrative(facts: facts, impact: impact)
     }
 }

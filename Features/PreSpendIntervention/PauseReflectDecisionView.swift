@@ -13,7 +13,8 @@ struct PauseReflectDecisionView: View {
 
                 NarrativeCard(
                     narrative: decision.narrative,
-                    suggestedAction: decision.suggestedAction
+                    suggestedAction: decision.suggestedAction,
+                    source: decision.narrativeSource
                 )
 
                 actionButtons
@@ -222,12 +223,24 @@ private struct BudgetProgressBar: View {
 private struct NarrativeCard: View {
     let narrative: String
     let suggestedAction: SuggestedAction
+    let source: NarrativeSource
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Coach", systemImage: "sparkles")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+            HStack {
+                Label(source.displayLabel, systemImage: "sparkles")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if source == .onDeviceLLM {
+                    Text("Private · on-device")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+            }
             Text(narrative)
                 .font(.body)
                 .fixedSize(horizontal: false, vertical: true)

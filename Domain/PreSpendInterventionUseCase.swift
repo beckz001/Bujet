@@ -9,6 +9,7 @@ struct InterventionDecision: Hashable, Sendable {
     let impact: ImpactSummary
     let narrative: String
     let suggestedAction: SuggestedAction
+    let narrativeSource: NarrativeSource
 }
 
 /// Orchestrates the Pause & Reflect flow:
@@ -46,7 +47,8 @@ struct PreSpendInterventionUseCase: Sendable {
             proposal: proposal,
             impact: impact,
             narrative: narrative.narrative,
-            suggestedAction: narrative.suggestedAction
+            suggestedAction: narrative.suggestedAction,
+            narrativeSource: narrative.source
         )
     }
 

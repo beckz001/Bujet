@@ -60,6 +60,7 @@ struct HomeView: View {
                 )
 
                 #if DEBUG
+                LLMDebugTile()
                 debugButtons
                 #endif
             }
