@@ -4,6 +4,7 @@ struct CoachView: View {
     let viewModel: CoachViewModel
     let makePotEditorViewModel: (@escaping () -> Void) -> PotEditorViewModel
     let makePotContributionViewModel: (Goal, @escaping () -> Void) -> PotContributionViewModel
+    let onTransactionsChanged: () -> Void
 
     @State private var presentedPotEditor: PotEditorViewModel?
     @State private var presentedContribution: PotContributionViewModel?
@@ -11,11 +12,13 @@ struct CoachView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if viewModel.moneySavedByPausing > 0 {
-                    SavedByPausingCard(
-                        amount: viewModel.moneySavedByPausing,
-                        currencyCode: viewModel.currencyCode
-                    )
+                SavedByPausingCard(
+                    amount: viewModel.moneySavedByPausing,
+                    currencyCode: viewModel.currencyCode
+                )
+
+                if !viewModel.pendingWaits.isEmpty {
+                    pendingWaitsSection
                 }
 
                 potsSection
@@ -49,6 +52,27 @@ struct CoachView: View {
         }
         .sheet(item: $presentedContribution) { vm in
             PotContributionSheet(viewModel: vm)
+        }
+    }
+
+    @ViewBuilder
+    private var pendingWaitsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Decisions to resolve")
+                .font(.system(.subheadline, design: .serif))
+
+            VStack(spacing: 12) {
+                ForEach(viewModel.pendingWaits) { log in
+                    PendingWaitCard(log: log) { outcome in
+                        Task {
+                            await viewModel.resolveWait(log, as: outcome)
+                            if outcome == .purchased {
+                                onTransactionsChanged()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -108,6 +132,70 @@ private struct SavedByPausingCard: View {
         f.currencyCode = currencyCode
         f.maximumFractionDigits = 0
         return f.string(from: NSNumber(value: amount)) ?? "\(amount)"
+    }
+}
+
+private struct PendingWaitCard: View {
+    let log: InterventionLog
+    let onResolve: (WaitOutcome) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: log.category.systemImage)
+                    .font(.body)
+                    .frame(width: 32, height: 32)
+                    .background(log.category.color.opacity(0.2), in: Circle())
+                    .foregroundStyle(log.category.color)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(log.itemDescription)
+                        .font(.headline)
+                    Text("\(formattedAmount) · paused \(relativeDate)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            Text("Did you end up buying it?")
+                .font(.subheadline)
+
+            HStack(spacing: 12) {
+                Button {
+                    onResolve(.skipped)
+                } label: {
+                    Label("Skipped it", systemImage: "checkmark")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+
+                Button {
+                    onResolve(.purchased)
+                } label: {
+                    Label("Bought it", systemImage: "bag")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .surfaceTile()
+    }
+
+    private var formattedAmount: String {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = log.currencyCode
+        f.maximumFractionDigits = 0
+        return f.string(from: NSNumber(value: log.amount)) ?? "\(log.amount)"
+    }
+
+    private var relativeDate: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: log.decidedAt, relativeTo: .now)
     }
 }
 

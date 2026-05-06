@@ -67,6 +67,16 @@ enum InterventionAction: Codable, Hashable {
     }
 }
 
+/// How the user eventually resolved a `.wait` decision after the snooze
+/// period elapsed. Only meaningful when `action` is `.wait`.
+enum WaitOutcome: String, Codable, Hashable, Sendable {
+    /// User decided NOT to buy — the amount feeds "money saved by pausing".
+    case skipped
+    /// User went ahead and bought — a real `Transaction` is written when
+    /// the resolution lands.
+    case purchased
+}
+
 /// Persisted record of a completed intervention. Drives the
 /// "money saved by pausing" stat shown in the Coach tab.
 struct InterventionLog: Identifiable, Codable, Hashable {
@@ -79,9 +89,9 @@ struct InterventionLog: Identifiable, Codable, Hashable {
     var action: InterventionAction
     var decidedAt: Date
 
-    /// Becomes true when the user later confirms they did *not* end up buying
-    /// after a wait. Used to feed the "money saved" stat.
-    var didDeclineAfterWait: Bool
+    /// Set when the user resolves a wait. Nil while the wait is still pending
+    /// (or when the action wasn't a wait in the first place).
+    var waitOutcome: WaitOutcome?
 
     init(
         id: UUID = UUID(),
@@ -92,7 +102,7 @@ struct InterventionLog: Identifiable, Codable, Hashable {
         currencyCode: String = "GBP",
         action: InterventionAction,
         decidedAt: Date = .now,
-        didDeclineAfterWait: Bool = false
+        waitOutcome: WaitOutcome? = nil
     ) {
         self.id = id
         self.proposalID = proposalID
@@ -102,6 +112,11 @@ struct InterventionLog: Identifiable, Codable, Hashable {
         self.currencyCode = currencyCode
         self.action = action
         self.decidedAt = decidedAt
-        self.didDeclineAfterWait = didDeclineAfterWait
+        self.waitOutcome = waitOutcome
+    }
+
+    var isPendingWait: Bool {
+        if case .wait = action, waitOutcome == nil { return true }
+        return false
     }
 }

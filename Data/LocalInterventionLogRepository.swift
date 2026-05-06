@@ -28,22 +28,26 @@ actor LocalInterventionLogRepository: InterventionLogRepository {
         }
     }
 
+    func fetchPendingWaits() async -> [InterventionLog] {
+        await fetchAll().filter(\.isPendingWait)
+    }
+
     func append(_ log: InterventionLog) async throws {
         var all = await fetchAll()
         all.append(log)
         try await persist(all)
     }
 
-    func markDeclinedAfterWait(id: UUID) async throws {
+    func resolveWait(id: UUID, outcome: WaitOutcome) async throws {
         var all = await fetchAll()
         guard let idx = all.firstIndex(where: { $0.id == id }) else { return }
-        all[idx].didDeclineAfterWait = true
+        all[idx].waitOutcome = outcome
         try await persist(all)
     }
 
     func moneySavedByPausing() async -> Double {
         await fetchAll()
-            .filter { $0.didDeclineAfterWait }
+            .filter { $0.waitOutcome == .skipped }
             .reduce(0) { $0 + $1.amount }
     }
 

@@ -69,7 +69,8 @@ final class AppModel {
 
         self.coachViewModel = CoachViewModel(
             goalRepository: goalRepository,
-            interventionLogRepository: interventionLogRepository
+            interventionLogRepository: interventionLogRepository,
+            transactionRepository: transactionRepository
         )
     }
 
