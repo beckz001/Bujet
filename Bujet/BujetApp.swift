@@ -5,6 +5,7 @@
 //  Created by Zachary Beck on 18/03/2026.
 //
 import SwiftUI
+import UserNotifications
 
 @main
 struct BujetApp: App {
@@ -15,6 +16,12 @@ struct BujetApp: App {
         interventionLogRepository: LocalInterventionLogRepository(),
         authClient: BackendAuthClient(baseURL: BackendConfiguration.baseURL)
     )
+
+    private let notificationDelegate = NotificationCenterDelegate()
+
+    init() {
+        UNUserNotificationCenter.current().delegate = notificationDelegate
+    }
 
     var body: some Scene {
         WindowGroup {

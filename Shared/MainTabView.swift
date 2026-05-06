@@ -60,6 +60,13 @@ struct MainTabView: View {
                     },
                     makePotContributionViewModel: { goal, onContributed in
                         appModel.makePotContributionViewModel(for: goal, onContributed: onContributed)
+                    },
+                    onTransactionsChanged: {
+                        Task {
+                            await appModel.homeViewModel.refresh()
+                            await appModel.transactionsViewModel.refresh()
+                            await appModel.insightsViewModel.refresh()
+                        }
                     }
                 )
             }
