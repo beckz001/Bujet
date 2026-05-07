@@ -90,6 +90,7 @@ final class AppModel {
     }
 
     func makePreSpendInterventionFlow(
+        prefilledProposal: InterventionProposal? = nil,
         onPotsChanged: @escaping () -> Void = {},
         onTransactionsChanged: @escaping () -> Void = {},
         onShowCoachRequested: @escaping () -> Void = {},
@@ -100,7 +101,9 @@ final class AppModel {
             goalRepository: goalRepository,
             budgetRepository: budgetRepository,
             transactionRepository: transactionRepository,
+            interventionLogRepository: interventionLogRepository,
             currencyCode: insightsViewModel.currencyCode,
+            prefilledProposal: prefilledProposal,
             onPotsChanged: onPotsChanged,
             onTransactionsChanged: onTransactionsChanged,
             onShowCoachRequested: onShowCoachRequested,

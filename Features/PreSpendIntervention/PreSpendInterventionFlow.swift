@@ -18,11 +18,17 @@ final class PreSpendInterventionFlow: Identifiable {
     @ObservationIgnored private let goalRepository: any GoalRepository
     @ObservationIgnored private let budgetRepository: any BudgetRepository
     @ObservationIgnored private let transactionRepository: any TransactionRepository
+    @ObservationIgnored private let interventionLogRepository: any InterventionLogRepository
     @ObservationIgnored private let waitReminderScheduler: WaitReminderScheduler
     @ObservationIgnored private let onDismissRequested: () -> Void
     @ObservationIgnored private let onPotsChanged: () -> Void
     @ObservationIgnored private let onTransactionsChanged: () -> Void
     @ObservationIgnored private let onShowCoachRequested: () -> Void
+
+    /// When set, this flow was opened by tapping a wait notification — we
+    /// should resolve the existing pending wait log on re-decision instead of
+    /// writing fresh InterventionLog entries.
+    @ObservationIgnored private let originalProposalID: UUID?
 
     var step: PreSpendInterventionStep = .input
 
@@ -52,8 +58,10 @@ final class PreSpendInterventionFlow: Identifiable {
         goalRepository: some GoalRepository,
         budgetRepository: some BudgetRepository,
         transactionRepository: some TransactionRepository,
+        interventionLogRepository: some InterventionLogRepository,
         waitReminderScheduler: WaitReminderScheduler = WaitReminderScheduler(),
         currencyCode: String = "GBP",
+        prefilledProposal: InterventionProposal? = nil,
         onPotsChanged: @escaping () -> Void = {},
         onTransactionsChanged: @escaping () -> Void = {},
         onShowCoachRequested: @escaping () -> Void = {},
@@ -63,12 +71,36 @@ final class PreSpendInterventionFlow: Identifiable {
         self.goalRepository = goalRepository
         self.budgetRepository = budgetRepository
         self.transactionRepository = transactionRepository
+        self.interventionLogRepository = interventionLogRepository
         self.waitReminderScheduler = waitReminderScheduler
         self.currencyCode = currencyCode
         self.onPotsChanged = onPotsChanged
         self.onTransactionsChanged = onTransactionsChanged
         self.onShowCoachRequested = onShowCoachRequested
         self.onDismissRequested = onDismissRequested
+
+        if let proposal = prefilledProposal {
+            self.amountText = formatAmount(proposal.amount)
+            self.itemDescription = proposal.itemDescription
+            self.category = proposal.category
+            self.currencyCode = proposal.currencyCode
+            self.originalProposalID = proposal.id
+        } else {
+            self.originalProposalID = nil
+        }
+    }
+
+    /// Whether this flow was opened from a wait reminder. Drives whether
+    /// re-decisions resolve the existing pending wait log instead of creating
+    /// a fresh one.
+    var isRedecision: Bool { originalProposalID != nil }
+
+    /// Called once when the flow first appears. If we're in re-decision mode,
+    /// jump straight past the input step and run evaluation against the
+    /// pre-filled proposal.
+    func start() async {
+        guard isRedecision, decision == nil, !isEvaluating else { return }
+        await runEvaluation()
     }
 
     var canSubmitInput: Bool {
@@ -132,7 +164,11 @@ final class PreSpendInterventionFlow: Identifiable {
         guard let amount = Double(amountText), amount > 0 else { return nil }
         let trimmed = itemDescription.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
+        // On re-decision keep the original proposal ID so any existing
+        // pending wait log can be resolved against the same record.
+        let id = originalProposalID ?? UUID()
         return InterventionProposal(
+            id: id,
             amount: amount,
             itemDescription: trimmed,
             category: category,
@@ -155,24 +191,36 @@ final class PreSpendInterventionFlow: Identifiable {
     }
 
     /// Persist Buy now both as an intervention log AND as an actual transaction
-    /// so the user's spending records reflect what they did.
+    /// so the user's spending records reflect what they did. On re-decision
+    /// from a wait reminder, resolve the existing pending wait as `.purchased`
+    /// instead of writing a duplicate log entry.
     func chooseBuyNow() async {
         guard let decision else { return }
         isRecording = true
         defer { isRecording = false }
 
-        try? await useCase.recordDecision(for: decision, action: .buyNow)
+        if isRedecision {
+            await resolvePendingWait(for: decision.proposal.id, outcome: .purchased)
+        } else {
+            try? await useCase.recordDecision(for: decision, action: .buyNow)
+        }
         await persistBuyNowTransaction(for: decision)
         onTransactionsChanged()
         onDismissRequested()
     }
 
+    /// On a re-decision, the original wait log is still pending — we just
+    /// reschedule the notification rather than logging a fresh wait, so the
+    /// "saved by pausing" total isn't double-counted if the user keeps
+    /// snoozing the same item.
     func chooseWait(_ duration: InterventionWaitDuration) async {
         guard let decision else { return }
         isRecording = true
         defer { isRecording = false }
 
-        try? await useCase.recordDecision(for: decision, action: .wait(duration))
+        if !isRedecision {
+            try? await useCase.recordDecision(for: decision, action: .wait(duration))
+        }
         await waitReminderScheduler.schedule(
             for: decision.proposal,
             duration: duration
@@ -180,6 +228,9 @@ final class PreSpendInterventionFlow: Identifiable {
         step = .waitConfirmed(duration)
     }
 
+    /// On re-decision the existing pending wait resolves as `.skipped` (the
+    /// user definitively didn't buy, so the amount counts as a save) and the
+    /// new pot is created without writing an addToPot log.
     func chooseAddToPot() async {
         guard let decision else { return }
         isRecording = true
@@ -201,7 +252,11 @@ final class PreSpendInterventionFlow: Identifiable {
 
         do {
             try await goalRepository.upsert(goal)
-            try? await useCase.recordDecision(for: decision, action: .addToPot(goalID: goal.id))
+            if isRedecision {
+                await resolvePendingWait(for: decision.proposal.id, outcome: .skipped)
+            } else {
+                try? await useCase.recordDecision(for: decision, action: .addToPot(goalID: goal.id))
+            }
             onPotsChanged()
             step = .potCreated(goal)
         } catch {
@@ -220,6 +275,12 @@ final class PreSpendInterventionFlow: Identifiable {
 
     // MARK: - Helpers
 
+    private func resolvePendingWait(for proposalID: UUID, outcome: WaitOutcome) async {
+        let pending = await interventionLogRepository.fetchPendingWaits()
+        guard let log = pending.first(where: { $0.proposalID == proposalID }) else { return }
+        try? await interventionLogRepository.resolveWait(id: log.id, outcome: outcome)
+    }
+
     private func persistBuyNowTransaction(for decision: InterventionDecision) async {
         let transaction = Transaction(
             id: "intervention-\(decision.proposal.id.uuidString)",
@@ -232,5 +293,12 @@ final class PreSpendInterventionFlow: Identifiable {
             category: decision.proposal.category
         )
         try? await transactionRepository.add([transaction])
+    }
+
+    private func formatAmount(_ amount: Double) -> String {
+        if amount.rounded() == amount {
+            return String(Int(amount))
+        }
+        return String(format: "%.2f", amount)
     }
 }

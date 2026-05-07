@@ -1,6 +1,18 @@
 import Foundation
 import UserNotifications
 
+/// Keys used inside `UNNotificationContent.userInfo` so the foreground tap
+/// handler can rebuild the original proposal and reopen the reflect sheet.
+enum WaitReminderUserInfoKey {
+    static let kind = "kind"
+    static let kindWaitReminder = "wait_reminder"
+    static let proposalID = "proposalID"
+    static let amount = "amount"
+    static let itemDescription = "itemDescription"
+    static let category = "category"
+    static let currencyCode = "currencyCode"
+}
+
 /// Schedules a single local notification for a Pause & Reflect wait. In DEBUG
 /// builds the delay is collapsed to ~5 seconds so the demo can show the
 /// notification firing live regardless of which option (24h / 7d / EOM) the
@@ -43,6 +55,14 @@ struct WaitReminderScheduler: Sendable {
         content.title = "Still want \(proposal.itemDescription)?"
         content.body = "You paused on a \(formattedAmount(proposal)) \(proposal.category.displayName.lowercased()) buy. If it's still right, go for it — if not, that's a save."
         content.sound = .default
+        content.userInfo = [
+            WaitReminderUserInfoKey.kind: WaitReminderUserInfoKey.kindWaitReminder,
+            WaitReminderUserInfoKey.proposalID: proposal.id.uuidString,
+            WaitReminderUserInfoKey.amount: proposal.amount,
+            WaitReminderUserInfoKey.itemDescription: proposal.itemDescription,
+            WaitReminderUserInfoKey.category: proposal.category.rawValue,
+            WaitReminderUserInfoKey.currencyCode: proposal.currencyCode
+        ]
 
         let interval = triggerInterval(
             duration: duration,
