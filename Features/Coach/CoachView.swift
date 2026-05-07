@@ -89,43 +89,52 @@ struct CoachView: View {
     @ViewBuilder
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Button {
                     Task { await viewModel.goToPreviousWeek() }
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(width: 28, height: 28)
+                        .font(.title3.weight(.semibold))
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Previous week")
 
-                Text(viewModel.weekRangeLabel)
-                    .font(.system(.subheadline, design: .serif))
-                    .monospacedDigit()
-                    .frame(minWidth: 120)
+                ZStack {
+                    Text(viewModel.weekRangeLabel)
+                        .font(.system(.title3, design: .serif))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+
+                    if viewModel.isLoadingInsights {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
 
                 Button {
                     Task { await viewModel.goToNextWeek() }
                 } label: {
                     Image(systemName: "chevron.right")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(width: 28, height: 28)
+                        .font(.title3.weight(.semibold))
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                         .opacity(viewModel.canGoToNextWeek ? 1 : 0.3)
                 }
                 .buttonStyle(.plain)
                 .disabled(!viewModel.canGoToNextWeek)
                 .accessibilityLabel("Next week")
-
-                Spacer()
-
-                if viewModel.isLoadingInsights {
-                    ProgressView()
-                        .controlSize(.small)
-                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .surfaceTile()
 
             if viewModel.insights.isEmpty && !viewModel.isLoadingInsights {
                 EmptyInsightsCard()
