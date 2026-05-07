@@ -21,6 +21,8 @@ struct CoachView: View {
                     pendingWaitsSection
                 }
 
+                insightsSection
+
                 potsSection
             }
             .padding(.horizontal, 20)
@@ -70,6 +72,31 @@ struct CoachView: View {
                                 onTransactionsChanged()
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var insightsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("This week")
+                    .font(.system(.subheadline, design: .serif))
+                Spacer()
+                if viewModel.isLoadingInsights {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+
+            if viewModel.insights.isEmpty && !viewModel.isLoadingInsights {
+                EmptyInsightsCard()
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.insights) { insight in
+                        InsightCard(insight: insight)
                     }
                 }
             }
@@ -290,5 +317,76 @@ private struct PotRow: View {
         f.currencyCode = goal.currencyCode
         f.maximumFractionDigits = 0
         return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+}
+
+private struct EmptyInsightsCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Nothing notable this week", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+            Text("Bujet flags categories that jump above your usual or repeat small charges with the same merchant. Nothing crossed those thresholds this week.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .surfaceTile()
+    }
+}
+
+private struct InsightCard: View {
+    let insight: Insight
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: leadingIcon)
+                    .font(.body)
+                    .frame(width: 32, height: 32)
+                    .background(iconTint.opacity(0.2), in: Circle())
+                    .foregroundStyle(iconTint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.candidate.headline)
+                        .font(.headline)
+                    Text(insight.candidate.periodLabel.capitalized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                sourceBadge
+            }
+
+            Text(insight.narrative)
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .surfaceTile()
+    }
+
+    private var leadingIcon: String {
+        if let category = insight.candidate.category {
+            return category.systemImage
+        }
+        return "sparkles"
+    }
+
+    private var iconTint: Color {
+        insight.candidate.category?.color ?? .accentColor
+    }
+
+    @ViewBuilder
+    private var sourceBadge: some View {
+        if insight.source == .onDeviceLLM {
+            Label("On-device AI", systemImage: "sparkles")
+                .labelStyle(.titleAndIcon)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(.ultraThinMaterial, in: Capsule())
+        }
     }
 }

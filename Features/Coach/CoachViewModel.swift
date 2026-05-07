@@ -7,20 +7,25 @@ final class CoachViewModel {
     @ObservationIgnored private let goalRepository: any GoalRepository
     @ObservationIgnored private let interventionLogRepository: any InterventionLogRepository
     @ObservationIgnored private let transactionRepository: any TransactionRepository
+    @ObservationIgnored private let weeklyInsightsUseCase: GenerateWeeklyInsightsUseCase
 
     var goals: [Goal] = []
     var pendingWaits: [InterventionLog] = []
     var moneySavedByPausing: Double = 0
     var currencyCode: String = "GBP"
+    var insights: [Insight] = []
+    var isLoadingInsights: Bool = false
 
     init(
         goalRepository: some GoalRepository,
         interventionLogRepository: some InterventionLogRepository,
-        transactionRepository: some TransactionRepository
+        transactionRepository: some TransactionRepository,
+        weeklyInsightsUseCase: GenerateWeeklyInsightsUseCase
     ) {
         self.goalRepository = goalRepository
         self.interventionLogRepository = interventionLogRepository
         self.transactionRepository = transactionRepository
+        self.weeklyInsightsUseCase = weeklyInsightsUseCase
     }
 
     func load() async {
@@ -35,6 +40,13 @@ final class CoachViewModel {
         } else if let firstWait = pendingWaits.first {
             currencyCode = firstWait.currencyCode
         }
+        await loadInsights()
+    }
+
+    func loadInsights() async {
+        isLoadingInsights = true
+        insights = await weeklyInsightsUseCase.run()
+        isLoadingInsights = false
     }
 
     func refresh() async { await load() }
