@@ -35,6 +35,14 @@ final class BankAccountConnector: BankConnecting {
     }
 
     func connect(provider: BankProvider) async throws -> [Transaction] {
+        if provider.isDemo {
+            // Tiny artificial delay so the importing banner is visible — the
+            // demo otherwise feels suspiciously instant.
+            try? await Task.sleep(for: .milliseconds(400))
+            let txs = DemoTransactionFactory.makeTransactions()
+            return txs.map { stamping($0, with: provider.id) }
+        }
+
         let startResponse = try await authClient.startAuth(providerID: provider.truelayerProviderID)
 
         let callbackURL: URL

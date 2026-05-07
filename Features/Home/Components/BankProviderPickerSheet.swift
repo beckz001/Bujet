@@ -9,6 +9,7 @@ import SwiftUI
 
 struct BankProviderPickerSheet: View {
     let providers: [BankProvider]
+    let demoProvider: BankProvider?
     let connectedProviderIDs: Set<String>
     let onSelect: (BankProvider) -> Void
     let onCancel: () -> Void
@@ -16,6 +17,24 @@ struct BankProviderPickerSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if let demoProvider {
+                    Section {
+                        Button {
+                            onSelect(demoProvider)
+                        } label: {
+                            ProviderRow(
+                                provider: demoProvider,
+                                isAlreadyConnected: connectedProviderIDs.contains(demoProvider.id)
+                            )
+                        }
+                        .disabled(connectedProviderIDs.contains(demoProvider.id))
+                    } header: {
+                        Text("Demo")
+                    } footer: {
+                        Text("Loads a curated, realistic 8-week transaction history — perfect for a quick walkthrough without going through the sandbox flow.")
+                    }
+                }
+
                 Section {
                     ForEach(providers) { provider in
                         Button {
@@ -28,6 +47,8 @@ struct BankProviderPickerSheet: View {
                         }
                         .disabled(connectedProviderIDs.contains(provider.id))
                     }
+                } header: {
+                    Text("Sandbox banks")
                 } footer: {
                     Text("Connect a sandbox bank to import its transactions. Each bank can be connected once.")
                 }
