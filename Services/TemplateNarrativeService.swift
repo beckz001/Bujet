@@ -65,6 +65,14 @@ struct TemplateNarrativeService: LLMNarrativeService {
         )
     }
 
+    func generateInsightNarrative(
+        candidate: InsightCandidate
+    ) async throws -> InsightNarrative {
+        // The candidate already carries pre-rendered prose — that *is* the
+        // template path. We just relabel it as a non-LLM source.
+        InsightNarrative(narrative: candidate.templateNarrative, source: .template)
+    }
+
     // MARK: - Helpers
 
     private func goalContextSuffix(

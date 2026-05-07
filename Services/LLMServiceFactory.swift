@@ -35,4 +35,16 @@ private struct DynamicNarrativeService: LLMNarrativeService {
         return try await TemplateNarrativeService()
             .generateInterventionNarrative(facts: facts, impact: impact)
     }
+
+    func generateInsightNarrative(
+        candidate: InsightCandidate
+    ) async throws -> InsightNarrative {
+        let availability = SystemLanguageModel.default.availability
+        if case .available = availability {
+            return try await FoundationModelsNarrativeService()
+                .generateInsightNarrative(candidate: candidate)
+        }
+        return try await TemplateNarrativeService()
+            .generateInsightNarrative(candidate: candidate)
+    }
 }

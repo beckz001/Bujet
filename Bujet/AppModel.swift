@@ -46,10 +46,16 @@ final class AppModel {
             goalRepository: goalRepository,
             interventionLogRepository: interventionLogRepository
         )
+        let narrativeService = LLMServiceFactory.make()
         self.preSpendInterventionUseCase = PreSpendInterventionUseCase(
             contextProvider: contextProvider,
-            narrativeService: LLMServiceFactory.make(),
+            narrativeService: narrativeService,
             interventionLogRepository: interventionLogRepository
+        )
+        let weeklyInsightsUseCase = GenerateWeeklyInsightsUseCase(
+            contextProvider: contextProvider,
+            analysers: [OverspendAnalyser(), RecurringSmallSpendAnalyser()],
+            narrativeService: narrativeService
         )
 
         self.homeViewModel = HomeViewModel(
@@ -70,7 +76,8 @@ final class AppModel {
         self.coachViewModel = CoachViewModel(
             goalRepository: goalRepository,
             interventionLogRepository: interventionLogRepository,
-            transactionRepository: transactionRepository
+            transactionRepository: transactionRepository,
+            weeklyInsightsUseCase: weeklyInsightsUseCase
         )
     }
 

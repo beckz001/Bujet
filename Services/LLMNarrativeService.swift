@@ -45,6 +45,14 @@ struct InterventionNarrative: Hashable, Sendable {
     var source: NarrativeSource = .template
 }
 
+/// Pure narrative output for a weekly insight. Same shape as
+/// `InterventionNarrative` minus the suggested-action — insights are
+/// observational, not prescriptive.
+struct InsightNarrative: Hashable, Sendable {
+    var narrative: String
+    var source: NarrativeSource = .template
+}
+
 /// Boundary that the rest of the app talks to. Two implementations:
 /// `TemplateNarrativeService` (string templates, always available) and
 /// `FoundationModelsNarrativeService` (real on-device LLM, iOS 26+ with
@@ -54,4 +62,8 @@ protocol LLMNarrativeService: Sendable {
         facts: SpendingFacts,
         impact: ImpactSummary
     ) async throws -> InterventionNarrative
+
+    func generateInsightNarrative(
+        candidate: InsightCandidate
+    ) async throws -> InsightNarrative
 }

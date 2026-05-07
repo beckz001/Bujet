@@ -46,6 +46,25 @@ struct FoundationModelsNarrativeService: LLMNarrativeService {
         }
     }
 
+    func generateInsightNarrative(
+        candidate: InsightCandidate
+    ) async throws -> InsightNarrative {
+        do {
+            let session = LanguageModelSession(instructions: Self.insightInstructions)
+            let prompt = Self.makeInsightPrompt(candidate: candidate)
+            let response = try await session.respond(
+                to: prompt,
+                generating: GeneratedInsightNarrative.self
+            )
+            return InsightNarrative(
+                narrative: response.content.narrative,
+                source: .onDeviceLLM
+            )
+        } catch {
+            return try await fallback.generateInsightNarrative(candidate: candidate)
+        }
+    }
+
     // MARK: - Prompt
 
     private static let instructions: String = """
@@ -133,6 +152,50 @@ struct FoundationModelsNarrativeService: LLMNarrativeService {
 
         return lines.joined(separator: "\n")
     }
+
+    private static let insightInstructions: String = """
+    You are a kind, non-judgemental personal finance coach inside the Bujet
+    app. The user is reviewing a weekly insight derived from their own
+    spending. Your job is to rephrase a pre-written observation in your own
+    words — warmer, more personal, but factually identical.
+
+    Rules:
+    - Use ONLY the numbers and merchants from the prompt. Never invent any.
+    - Write 1 to 2 short sentences in the second person.
+    - Stay observational, not prescriptive — no "you should" instructions.
+    - Do not begin with "Hey", an exclamation mark, or the user's name.
+    """
+
+    private static func makeInsightPrompt(candidate: InsightCandidate) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = candidate.currencyCode
+        formatter.maximumFractionDigits = 2
+        func fmt(_ d: Double) -> String {
+            formatter.string(from: NSNumber(value: d)) ?? "\(d)"
+        }
+
+        var lines: [String] = []
+        lines.append("Insight type: \(candidate.kind.rawValue)")
+        if let category = candidate.category {
+            lines.append("Category: \(category.displayName)")
+        }
+        if let merchant = candidate.merchantHint {
+            lines.append("Merchant: \(merchant)")
+        }
+        lines.append("Period: \(candidate.periodLabel)")
+        lines.append("Headline number: \(fmt(candidate.primaryAmount))")
+        if candidate.comparisonAmount > 0 {
+            lines.append("Comparison number: \(fmt(candidate.comparisonAmount))")
+        }
+        if candidate.occurrenceCount > 0 {
+            lines.append("Occurrences: \(candidate.occurrenceCount)")
+        }
+        lines.append("")
+        lines.append("Pre-written observation (rephrase this faithfully):")
+        lines.append(candidate.templateNarrative)
+        return lines.joined(separator: "\n")
+    }
 }
 
 // MARK: - @Generable DTOs
@@ -146,6 +209,12 @@ private struct GeneratedInterventionNarrative {
 
     @Guide(description: "Recommended next step for the user — buy now, wait, or save toward it as a wishlist pot. Pick the one that best fits the situation.")
     let suggestedAction: GeneratedSuggestedAction
+}
+
+@Generable
+private struct GeneratedInsightNarrative {
+    @Guide(description: "1 to 2 short sentences in the second person, observational tone. Use only the numbers, percentages, and merchants supplied in the prompt — invent nothing.")
+    let narrative: String
 }
 
 @Generable

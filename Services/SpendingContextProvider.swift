@@ -11,6 +11,7 @@ struct SpendingContextProvider: Sendable {
 
     private let calendar: Calendar
     private let baselineMonthCount: Int
+    private let baselineWeekCount: Int
 
     init(
         transactionRepository: some TransactionRepository,
@@ -18,7 +19,8 @@ struct SpendingContextProvider: Sendable {
         goalRepository: some GoalRepository,
         interventionLogRepository: some InterventionLogRepository,
         calendar: Calendar = .current,
-        baselineMonthCount: Int = 6
+        baselineMonthCount: Int = 6,
+        baselineWeekCount: Int = 8
     ) {
         self.transactionRepository = transactionRepository
         self.budgetRepository = budgetRepository
@@ -26,6 +28,7 @@ struct SpendingContextProvider: Sendable {
         self.interventionLogRepository = interventionLogRepository
         self.calendar = calendar
         self.baselineMonthCount = baselineMonthCount
+        self.baselineWeekCount = baselineWeekCount
     }
 
     func makeFacts(for proposal: InterventionProposal?, now: Date = .now) async -> SpendingFacts {
@@ -65,6 +68,81 @@ struct SpendingContextProvider: Sendable {
             moneySavedByPausing: moneySaved,
             currencyCode: txs.first?.currencyCode ?? proposal?.currencyCode ?? "GBP"
         )
+    }
+
+    // MARK: - Weekly facts (insights pipeline)
+
+    /// Builds the deterministic weekly snapshot that the analysers operate
+    /// on. The "current week" is the 7-day window ending at `now`, with
+    /// baselines computed over the previous `baselineWeekCount` non-overlapping
+    /// 7-day windows.
+    func makeWeeklyFacts(now: Date = .now) async -> WeeklyFacts {
+        let txs = await transactionRepository.fetchAll()
+        guard let weekInterval = currentWeekInterval(now: now) else {
+            return WeeklyFacts(
+                weekInterval: DateInterval(start: now, duration: 0),
+                weekTransactions: [],
+                weeklySpendByCategory: [:],
+                weeklyBaselineByCategory: [:],
+                currencyCode: txs.first?.currencyCode ?? "GBP"
+            )
+        }
+
+        let weekTxs = txs.filter { weekInterval.contains($0.date) }
+        let weekSpend = weeklySpendByCategory(transactions: weekTxs)
+        let baseline = weeklyBaselineByCategory(transactions: txs, weekInterval: weekInterval)
+
+        return WeeklyFacts(
+            weekInterval: weekInterval,
+            weekTransactions: weekTxs,
+            weeklySpendByCategory: weekSpend,
+            weeklyBaselineByCategory: baseline,
+            currencyCode: txs.first?.currencyCode ?? "GBP"
+        )
+    }
+
+    private func currentWeekInterval(now: Date) -> DateInterval? {
+        guard let start = calendar.date(byAdding: .day, value: -7, to: now) else { return nil }
+        return DateInterval(start: start, end: now)
+    }
+
+    private func weeklySpendByCategory(
+        transactions: [Transaction]
+    ) -> [TransactionCategory: Double] {
+        var totals: [TransactionCategory: Double] = [:]
+        for tx in transactions where tx.isDebit {
+            totals[tx.category, default: 0] += abs(tx.amount)
+        }
+        return totals
+    }
+
+    /// Mean weekly spend per category over the prior `baselineWeekCount`
+    /// non-overlapping 7-day windows ending at `weekInterval.start`.
+    private func weeklyBaselineByCategory(
+        transactions: [Transaction],
+        weekInterval: DateInterval
+    ) -> [TransactionCategory: Double] {
+        var monthlyTotals: [TransactionCategory: [Double]] = [:]
+        for offset in 1...baselineWeekCount {
+            guard let windowEnd = calendar.date(
+                byAdding: .day,
+                value: -7 * (offset - 1),
+                to: weekInterval.start
+            ),
+            let windowStart = calendar.date(byAdding: .day, value: -7, to: windowEnd)
+            else { continue }
+            let interval = DateInterval(start: windowStart, end: windowEnd)
+            var totals: [TransactionCategory: Double] = [:]
+            for tx in transactions where tx.isDebit && interval.contains(tx.date) {
+                totals[tx.category, default: 0] += abs(tx.amount)
+            }
+            for (category, amount) in totals {
+                monthlyTotals[category, default: []].append(amount)
+            }
+        }
+        return monthlyTotals.mapValues { values in
+            values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count)
+        }
     }
 
     // MARK: - Numerical aggregations
