@@ -117,6 +117,7 @@ struct HomeView: View {
         .sheet(isPresented: $bindableViewModel.isPresentingBankPicker) {
             BankProviderPickerSheet(
                 providers: viewModel.availableProviders,
+                demoProvider: viewModel.demoProvider,
                 connectedProviderIDs: viewModel.connectedProviderIDs,
                 onSelect: { provider in
                     Task {

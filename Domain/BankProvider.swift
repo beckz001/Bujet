@@ -20,9 +20,25 @@ struct BankProvider: Identifiable, Hashable {
     let displayName: String
     let iconSystemName: String
     let tint: Color
+    /// `true` if this entry is a non-TrueLayer demo source. The connector
+    /// short-circuits the OAuth flow for demo providers and synthesises a
+    /// pre-built transaction list instead.
+    var isDemo: Bool = false
 }
 
 extension BankProvider {
+    /// Pseudo-provider that injects a hand-crafted realistic 8-week dataset
+    /// instead of going through TrueLayer. Useful for demos when the sandbox
+    /// data is too noisy.
+    static let demoData = BankProvider(
+        id: DemoTransactionFactory.providerID,
+        truelayerProviderID: "demo",
+        displayName: "Demo Data",
+        iconSystemName: "sparkles",
+        tint: .accentColor,
+        isDemo: true
+    )
+
     /// Curated list of major UK retail banks. The local `id` uses TrueLayer's
     /// `ob-<bank>` naming for clarity, but every entry routes through the
     /// `mock` sandbox provider until production access is granted.

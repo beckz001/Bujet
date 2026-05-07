@@ -150,6 +150,12 @@ final class HomeViewModel {
         BankProvider.ukCatalog
     }
 
+    /// Pseudo-provider that injects a curated demo dataset; surfaced as its
+    /// own section in the bank picker.
+    var demoProvider: BankProvider {
+        BankProvider.demoData
+    }
+
     /// Drives the bank-picker sheet from `HomeView`.
     var isPresentingBankPicker: Bool = false
 
