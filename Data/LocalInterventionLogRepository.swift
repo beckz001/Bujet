@@ -51,6 +51,20 @@ actor LocalInterventionLogRepository: InterventionLogRepository {
             .reduce(0) { $0 + $1.amount }
     }
 
+    func moneySavedByPausing(in interval: DateInterval) async -> Double {
+        await fetchAll()
+            .filter { $0.waitOutcome == .skipped && interval.contains($0.decidedAt) }
+            .reduce(0) { $0 + $1.amount }
+    }
+
+    #if DEBUG
+    func clearAll() async throws {
+        if FileManager.default.fileExists(atPath: fileURL.path()) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+    #endif
+
     private func persist(_ logs: [InterventionLog]) async throws {
         let data = try encoder.encode(logs)
         try data.write(to: fileURL, options: .atomic)

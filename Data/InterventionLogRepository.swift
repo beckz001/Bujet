@@ -6,4 +6,9 @@ protocol InterventionLogRepository: Sendable {
     func append(_ log: InterventionLog) async throws
     func resolveWait(id: UUID, outcome: WaitOutcome) async throws
     func moneySavedByPausing() async -> Double
+    func moneySavedByPausing(in interval: DateInterval) async -> Double
+
+    #if DEBUG
+    func clearAll() async throws
+    #endif
 }

@@ -9,6 +9,10 @@ struct CoachView: View {
     @State private var presentedPotEditor: PotEditorViewModel?
     @State private var presentedContribution: PotContributionViewModel?
 
+    #if DEBUG
+    @State private var showingResetSavedAlert = false
+    #endif
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -24,6 +28,10 @@ struct CoachView: View {
                 insightsSection
 
                 potsSection
+
+                #if DEBUG
+                debugResetButton
+                #endif
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -81,10 +89,38 @@ struct CoachView: View {
     @ViewBuilder
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("This week")
+            HStack(spacing: 8) {
+                Button {
+                    Task { await viewModel.goToPreviousWeek() }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Previous week")
+
+                Text(viewModel.weekRangeLabel)
                     .font(.system(.subheadline, design: .serif))
+                    .monospacedDigit()
+                    .frame(minWidth: 120)
+
+                Button {
+                    Task { await viewModel.goToNextWeek() }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                        .opacity(viewModel.canGoToNextWeek ? 1 : 0.3)
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.canGoToNextWeek)
+                .accessibilityLabel("Next week")
+
                 Spacer()
+
                 if viewModel.isLoadingInsights {
                     ProgressView()
                         .controlSize(.small)
@@ -102,6 +138,30 @@ struct CoachView: View {
             }
         }
     }
+
+    #if DEBUG
+    @ViewBuilder
+    private var debugResetButton: some View {
+        Button(
+            "Reset saved-by-pausing",
+            systemImage: "arrow.counterclockwise",
+            role: .destructive
+        ) {
+            showingResetSavedAlert = true
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .surfaceTile()
+        .alert("Reset saved-by-pausing?", isPresented: $showingResetSavedAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                Task { await viewModel.resetInterventionLog() }
+            }
+        } message: {
+            Text("Clears all wait decisions and resets the saved-by-pausing total to zero. Pending waits will also disappear.")
+        }
+    }
+    #endif
 
     @ViewBuilder
     private var potsSection: some View {
@@ -141,7 +201,7 @@ private struct SavedByPausingCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Money saved by pausing", systemImage: "moon.zzz.fill")
+            Label("Saved by pausing this month", systemImage: "moon.zzz.fill")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(formatted)
