@@ -17,15 +17,24 @@ struct BujetApp: App {
         authClient: BackendAuthClient(baseURL: BackendConfiguration.baseURL)
     )
 
-    private let notificationDelegate = NotificationCenterDelegate()
+    @State private var waitReminderRouter: WaitReminderRouter
+
+    private let notificationDelegate: NotificationCenterDelegate
 
     init() {
-        UNUserNotificationCenter.current().delegate = notificationDelegate
+        let router = WaitReminderRouter()
+        _waitReminderRouter = State(initialValue: router)
+        let delegate = NotificationCenterDelegate(router: router)
+        self.notificationDelegate = delegate
+        UNUserNotificationCenter.current().delegate = delegate
     }
 
     var body: some Scene {
         WindowGroup {
-            MainTabView(appModel: appModel)
+            MainTabView(
+                appModel: appModel,
+                waitReminderRouter: waitReminderRouter
+            )
         }
     }
 }

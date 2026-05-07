@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Bindable var appModel: AppModel
+    let waitReminderRouter: WaitReminderRouter
     @State private var pauseReflectFlow: PreSpendInterventionFlow?
 
     var body: some View {
@@ -28,22 +29,7 @@ struct MainTabView: View {
                         appModel.selectedTab = .transactions
                     },
                     onPauseReflectTapped: {
-                        pauseReflectFlow = appModel.makePreSpendInterventionFlow(
-                            onPotsChanged: {
-                                Task { await appModel.coachViewModel.refresh() }
-                            },
-                            onTransactionsChanged: {
-                                Task {
-                                    await appModel.homeViewModel.refresh()
-                                    await appModel.transactionsViewModel.refresh()
-                                    await appModel.insightsViewModel.refresh()
-                                }
-                            },
-                            onShowCoachRequested: {
-                                appModel.selectedTab = .coach
-                            },
-                            onDismissRequested: { pauseReflectFlow = nil }
-                        )
+                        pauseReflectFlow = makeFlow(prefilledProposal: nil)
                     }
                 )
             }
@@ -98,6 +84,55 @@ struct MainTabView: View {
         }
         .sheet(item: $pauseReflectFlow) { flow in
             PreSpendInterventionSheet(flow: flow)
+                .task { await flow.start() }
+        }
+        .onChange(of: waitReminderRouter.pendingProposal) { _, proposal in
+            guard let proposal else { return }
+            handleWaitReminderTap(proposal: proposal)
+        }
+        .task {
+            // Cold-start case: notification tap was handled before the view
+            // wired up its onChange observer.
+            if let proposal = waitReminderRouter.pendingProposal {
+                handleWaitReminderTap(proposal: proposal)
+            }
+        }
+    }
+
+    private func makeFlow(prefilledProposal: InterventionProposal?) -> PreSpendInterventionFlow {
+        appModel.makePreSpendInterventionFlow(
+            prefilledProposal: prefilledProposal,
+            onPotsChanged: {
+                Task { await appModel.coachViewModel.refresh() }
+            },
+            onTransactionsChanged: {
+                Task {
+                    await appModel.homeViewModel.refresh()
+                    await appModel.transactionsViewModel.refresh()
+                    await appModel.insightsViewModel.refresh()
+                }
+            },
+            onShowCoachRequested: {
+                appModel.selectedTab = .coach
+            },
+            onDismissRequested: { pauseReflectFlow = nil }
+        )
+    }
+
+    /// If a sheet is already up (manual flow, or stale state) we dismiss it
+    /// first and re-present on the next runloop so SwiftUI actually animates
+    /// the new flow in. Otherwise present immediately.
+    private func handleWaitReminderTap(proposal: InterventionProposal) {
+        waitReminderRouter.pendingProposal = nil
+        let newFlow = makeFlow(prefilledProposal: proposal)
+        if pauseReflectFlow != nil {
+            pauseReflectFlow = nil
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                pauseReflectFlow = newFlow
+            }
+        } else {
+            pauseReflectFlow = newFlow
         }
     }
 }
