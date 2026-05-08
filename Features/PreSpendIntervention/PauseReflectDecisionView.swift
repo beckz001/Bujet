@@ -60,6 +60,16 @@ struct PauseReflectDecisionView: View {
             ) {
                 Task { await flow.chooseAddToPot() }
             }
+
+            if flow.isRedecision {
+                actionButton(
+                    title: "Skip",
+                    systemImage: "xmark.circle",
+                    isHighlighted: false
+                ) {
+                    Task { await flow.chooseSkip() }
+                }
+            }
         }
         .disabled(flow.isRecording)
     }

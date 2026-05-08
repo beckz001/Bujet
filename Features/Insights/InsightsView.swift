@@ -19,7 +19,7 @@ struct InsightsView: View {
                         WhereItWentCard.Row(
                             category: category,
                             amount: viewModel.total(for: category),
-                            percentage: viewModel.percentage(for: category)
+                            budgetLimit: viewModel.budgetLimit(for: category)
                         )
                     }
                 )
