@@ -80,7 +80,7 @@ final class PreSpendInterventionFlow: Identifiable {
         self.onDismissRequested = onDismissRequested
 
         if let proposal = prefilledProposal {
-            self.amountText = formatAmount(proposal.amount)
+            self.amountText = Self.formatAmount(proposal.amount)
             self.itemDescription = proposal.itemDescription
             self.category = proposal.category
             self.currencyCode = proposal.currencyCode
@@ -264,6 +264,19 @@ final class PreSpendInterventionFlow: Identifiable {
         }
     }
 
+    /// Skip — the user definitively isn't buying this and isn't saving for it
+    /// either. Only meaningful on a re-decision (there's a pending wait to
+    /// resolve); resolves that wait as `.skipped` so the amount counts toward
+    /// "saved by pausing" without creating a pot or transaction.
+    func chooseSkip() async {
+        guard let decision, isRedecision else { return }
+        isRecording = true
+        defer { isRecording = false }
+
+        await resolvePendingWait(for: decision.proposal.id, outcome: .skipped)
+        onDismissRequested()
+    }
+
     func dismiss() {
         onDismissRequested()
     }
@@ -295,7 +308,7 @@ final class PreSpendInterventionFlow: Identifiable {
         try? await transactionRepository.add([transaction])
     }
 
-    private func formatAmount(_ amount: Double) -> String {
+    private static func formatAmount(_ amount: Double) -> String {
         if amount.rounded() == amount {
             return String(Int(amount))
         }

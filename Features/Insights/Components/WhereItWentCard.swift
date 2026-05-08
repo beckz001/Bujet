@@ -8,9 +8,21 @@ struct WhereItWentCard: View {
     struct Row: Identifiable {
         let category: TransactionCategory
         let amount: Double
-        let percentage: Double
+        /// The user's budget limit for this category, if set. When `nil` the
+        /// row falls back to "no budget" treatment.
+        let budgetLimit: Double?
 
         var id: TransactionCategory { category }
+
+        /// Percent of budget used. `nil` when no budget is set.
+        var percentageOfBudget: Double? {
+            guard let limit = budgetLimit, limit > 0 else { return nil }
+            return amount / limit * 100
+        }
+
+        var isOverBudget: Bool {
+            (percentageOfBudget ?? 0) > 100
+        }
     }
 
     var body: some View {
@@ -54,6 +66,13 @@ private struct CategoryRow: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.primary)
 
+                if row.isOverBudget {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("Over budget")
+                }
+
                 Spacer(minLength: 8)
 
                 Text(row.amount, format: .currency(code: currencyCode))
@@ -63,22 +82,35 @@ private struct CategoryRow: View {
                 Text("·")
                     .foregroundStyle(.secondary)
 
-                Text("\(Int(row.percentage.rounded()))%")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                budgetPercentLabel
             }
 
             PercentageBar(
-                percentage: row.percentage,
-                color: row.category.color
+                percentageOfBudget: row.percentageOfBudget,
+                color: row.isOverBudget ? .red : row.category.color
             )
+        }
+    }
+
+    @ViewBuilder
+    private var budgetPercentLabel: some View {
+        if let percent = row.percentageOfBudget {
+            Text("\(Int(percent.rounded()))% of budget")
+                .font(.footnote)
+                .foregroundStyle(row.isOverBudget ? .red : .secondary)
+                .monospacedDigit()
+        } else {
+            Text("No budget")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 }
 
 private struct PercentageBar: View {
-    let percentage: Double
+    /// Percent of budget used. `nil` means no budget is set — the bar shows an
+    /// empty track.
+    let percentageOfBudget: Double?
     let color: Color
 
     var body: some View {
@@ -96,6 +128,7 @@ private struct PercentageBar: View {
     }
 
     private var clampedFraction: CGFloat {
-        CGFloat(max(0, min(100, percentage)) / 100)
+        guard let percent = percentageOfBudget else { return 0 }
+        return CGFloat(max(0, min(100, percent)) / 100)
     }
 }
