@@ -249,3 +249,379 @@ the Sprint 1 / Sprint 2 test cases are untouched.
   re-decision loop" against the competitors as a Bujet-only ✅. This is
   exactly the framing for the innovative feature and is already pulling
   its weight — keep as-is.
+
+---
+
+## 7. Updated class diagram (slide 21) — PlantUML
+
+The current class diagram still revolves around `InsightService` /
+`ReviewSpendingViewModel`. The Sprint 3 innovative feature has *its own*
+class graph that doesn't appear anywhere. The diagram below keeps the
+Sprint 1 (bank connection) and Sprint 2 (manual transaction) spines from
+the original — they're correct — and adds the Sprint 3 spine on the
+bottom half. Stereotypes follow the (V) / (C) / (M) convention you
+already used in the original slide.
+
+The rubric says **"Class Diagram (Abstract)"**, so I've left out
+internal helpers (e.g. `BackendAuthClient`, `TransactionImportFlow`) and
+private fields — only the load-bearing public surface is shown.
+
+```plantuml
+@startuml ClassDiagram_Bujet
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+' =============================================================
+' Sprint 1 — Bank connection (kept from original)
+' =============================================================
+package "Sprint 1 — Bank connection" {
+  class "ConnectBankView (V)" as ConnectBankView
+  class "ConnectBankViewModel (C)" as ConnectBankVM
+  class "BankConnectionService (C)" as BankConnService
+  class "SecureTokenStore (C)" as SecureTokenStore
+  class "BankConnectionRepository (C)" as BankConnRepo
+  class "BankConnection (M)" as BankConnection
+  class "Account (M)" as Account
+
+  ConnectBankView -right-> ConnectBankVM : observes
+  ConnectBankVM   -right-> BankConnService : uses
+  BankConnService -right-> SecureTokenStore : stores
+  BankConnService -down->  BankConnRepo : updates
+  BankConnRepo    -right-> BankConnection : persists 0..*
+  BankConnection  -down->  Account : has 1..*
+}
+
+' =============================================================
+' Sprint 2 — Manual transaction entry (kept from original)
+' =============================================================
+package "Sprint 2 — Manual entry" {
+  class "ManualTransactionSheet (V)" as ManualSheet
+  class "ManualTransactionFlow (C)" as ManualFlow
+  class "ManualTransactionValidator (C)" as ManualValidator
+  class "TransactionRepository (C)" as TxRepo
+  class "Transaction (M)" as Transaction
+
+  ManualSheet     -right-> ManualFlow : observes
+  ManualFlow      -right-> ManualValidator : uses
+  ManualFlow      -down->  TxRepo : savesTo
+  TxRepo          -right-> Transaction : persists 0..*
+}
+
+' =============================================================
+' Sprint 3 — Pause & Reflect + Wait re-decision (NEW)
+' =============================================================
+package "Sprint 3 — Innovative feature" {
+  ' Views
+  class "PreSpendInterventionSheet (V)" as PRSheet
+  class "PauseReflectInputView (V)"     as InputView
+  class "PauseReflectDecisionView (V)"  as DecisionView
+  class "WaitConfirmedView (V)"         as WaitView
+  class "PotCreatedView (V)"            as PotView
+  class "MainTabView (V)"               as MainTabView
+
+  ' Controller / flow
+  class "PreSpendInterventionFlow (C)" as Flow
+
+  ' Use case + services
+  class "PreSpendInterventionUseCase (C)" as UseCase
+  class "SpendingContextProvider (C)"     as ContextProvider
+  interface "LLMNarrativeService (C)"     as LLMService
+  class "TemplateNarrativeService (C)"           as TemplateLLM
+  class "FoundationModelsNarrativeService (C)"   as FoundationLLM
+  class "WaitReminderScheduler (C)"       as Scheduler
+  class "WaitReminderRouter (C)"          as Router
+  class "NotificationCenterDelegate (C)"  as NotifDelegate
+
+  ' Repositories
+  interface "InterventionLogRepository (C)" as ILogRepoIF
+  class "LocalInterventionLogRepository (C)" as ILogRepo
+  interface "GoalRepository (C)" as GoalRepoIF
+  class "LocalGoalRepository (C)" as GoalRepo
+
+  ' Models
+  class "InterventionProposal (M)" as Proposal
+  class "InterventionDecision (M)" as Decision
+  class "InterventionLog (M)"      as Log
+  class "ImpactSummary (M)"        as Impact
+  class "SpendingFacts (M)"        as Facts
+  class "Goal (M)"                 as Goal
+  class "WishlistItem (M)"         as Wishlist
+
+  ' Sheet → child views
+  PRSheet *-- InputView
+  PRSheet *-- DecisionView
+  PRSheet *-- WaitView
+  PRSheet *-- PotView
+
+  ' View ↔ flow
+  PRSheet -right-> Flow : observes
+  MainTabView ..> Flow : creates on banner tap
+
+  ' Flow → use case + services
+  Flow -down-> UseCase   : evaluates via
+  Flow -down-> Scheduler : schedules
+  Flow -down-> ILogRepoIF : resolveWait()
+  Flow -down-> GoalRepoIF : creates pot
+
+  ' Use case
+  UseCase -down-> ContextProvider : facts + impact
+  UseCase -down-> LLMService      : narrative
+  UseCase -down-> ILogRepoIF      : appends log
+
+  ' LLM polymorphism
+  LLMService <|.. TemplateLLM
+  LLMService <|.. FoundationLLM
+
+  ' Notification path
+  Scheduler ..> NotifDelegate : (UNUserNotificationCenter)
+  NotifDelegate -right-> Router : sets pendingProposal
+  Router -right-> MainTabView   : observed by
+
+  ' Repository concretisations
+  ILogRepoIF <|.. ILogRepo
+  GoalRepoIF <|.. GoalRepo
+
+  ' Model relationships
+  ILogRepo  -right-> Log : persists 0..*
+  GoalRepo  -right-> Goal : persists 0..*
+  Goal      -right-> Wishlist : linkedItem 0..1
+  Log       -up->    Proposal : proposalID
+  UseCase   ..>      Decision : produces
+  Decision  -up->    Proposal : about
+  Decision  -up->    Impact   : numbers
+  ContextProvider ..> Facts   : builds
+}
+
+' Cross-sprint reuse (Sprint 3 reads from Sprint 1+2 repos)
+ContextProvider ..> TxRepo : reads
+ContextProvider ..> ILogRepoIF : reads
+
+@enduml
+```
+
+### Notes for the slide
+
+* The diagram is wider than the current one. Suggest splitting across
+  **two slides** — Sprint 1+2 (kept) on one, Sprint 3 on a new slide
+  titled "3.2 Class Diagram — Innovative feature".
+* Polymorphism is the genuinely interesting design choice: the
+  `LLMNarrativeService` protocol with two concrete implementations
+  (`TemplateNarrativeService` always available, `FoundationModelsNarrativeService`
+  for iOS 26+ with Apple Intelligence). `LLMServiceFactory.make()` selects
+  at runtime. Worth a one-sentence callout on the slide — this directly
+  evidences "well-argued choice of architectural style" in the rubric.
+* Numbers (`ImpactSummary`) never originate from the LLM by construction
+  — they're computed deterministically in `SpendingContextProvider.makeImpactSummary`
+  and passed *into* the prompt. Worth a callout too: it's an explicit
+  design decision to keep the user-facing arithmetic correct even when
+  the model is hallucinating.
+
+---
+
+## 8. Updated detailed class descriptions (slide 24)
+
+The brief says *"min 3 classes / person"*. The current slide has three:
+`BankConnectionService` (Sprint 1), `LocalTransactionRepository` (Sprint 2),
+`ReviewSpendingViewModel` (Insights — not part of Sprint 3).
+
+**Recommended swap:** keep `BankConnectionService` and
+`LocalTransactionRepository` (they anchor Sprints 1 + 2 nicely), and
+replace `ReviewSpendingViewModel` with `PreSpendInterventionFlow`. That
+gives you one detailed class per sprint, all three load-bearing.
+
+If you have slide room, drop in `PreSpendInterventionUseCase` and
+`WaitReminderScheduler` too — they show off the layering (Flow as the
+MVVM controller, UseCase as the domain orchestrator, Scheduler as the
+platform-services adapter). All three are written below in the
+yellow-box format you already used.
+
+### 8.1 PreSpendInterventionFlow *(replaces ReviewSpendingViewModel)*
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ PreSpendInterventionFlow                                     │
+├──────────────────────────────────────────────────────────────┤
+│ useCase: PreSpendInterventionUseCase                         │
+│ goalRepository: GoalRepository                               │
+│ interventionLogRepository: InterventionLogRepository         │
+│ waitReminderScheduler: WaitReminderScheduler                 │
+│ originalProposalID: UUID?                                    │
+│ step: PreSpendInterventionStep                               │
+│ amountText: String                                           │
+│ itemDescription: String                                      │
+│ category: TransactionCategory                                │
+│ decision: InterventionDecision?                              │
+│ isEvaluating: Bool                                           │
+│ isRecording: Bool                                            │
+├──────────────────────────────────────────────────────────────┤
+│ submitInput() async -> Void                                  │
+│ // Validates the proposal, checks budget exists, then runs   │
+│ // evaluation via the use case.                              │
+│ start() async -> Void                                        │
+│ // Re-decision entry point. Auto-evaluates if the flow was   │
+│ // opened from a notification tap (originalProposalID set).  │
+│ chooseBuyNow() async -> Void                                 │
+│ // Resolves pending wait as .purchased (re-decision) OR      │
+│ // appends a fresh log (first decision), then writes a       │
+│ // Transaction so the user's spend records reflect the buy.  │
+│ chooseWait(_ duration) async -> Void                         │
+│ // Schedules a UNNotification via the scheduler. On          │
+│ // re-decision DOES NOT log a new wait (preserves the        │
+│ // single-record data-integrity NFR).                        │
+│ chooseAddToPot() async -> Void                               │
+│ // Creates a Goal (pot) with a linked WishlistItem;          │
+│ // resolves pending wait as .skipped on re-decision.         │
+│ chooseSkip() async -> Void                                   │
+│ // Re-decision only. Resolves pending wait as .skipped, no   │
+│ // pot, no transaction. Powers the "saved by pausing" stat.  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 PreSpendInterventionUseCase *(optional — add if room)*
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ PreSpendInterventionUseCase                                  │
+├──────────────────────────────────────────────────────────────┤
+│ contextProvider: SpendingContextProvider                     │
+│ narrativeService: LLMNarrativeService                        │
+│ interventionLogRepository: InterventionLogRepository         │
+├──────────────────────────────────────────────────────────────┤
+│ evaluate(_ proposal) async throws -> InterventionDecision    │
+│ // Builds SpendingFacts from repos, computes the             │
+│ // deterministic ImpactSummary in Swift, then asks the LLM   │
+│ // for the prose + suggested action. Numbers never come      │
+│ // from the LLM by construction.                             │
+│ recordDecision(for decision, action) async throws -> Void    │
+│ // Appends an InterventionLog audit entry. Separate from     │
+│ // evaluate() so the presentation layer controls when the    │
+│ // log is written (e.g. skipped on re-decision to avoid      │
+│ // double-counting).                                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 8.3 WaitReminderScheduler *(optional — add if room)*
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ WaitReminderScheduler                                        │
+├──────────────────────────────────────────────────────────────┤
+│ center: UNUserNotificationCenter                             │
+├──────────────────────────────────────────────────────────────┤
+│ requestAuthorizationIfNeeded() async -> Bool                 │
+│ // Lazy permission request; succeeds for already-authorised  │
+│ // states, returns false on denial.                          │
+│ schedule(for proposal, duration) async -> Void               │
+│ // Builds a UNNotificationRequest whose userInfo encodes     │
+│ // the proposal (id, amount, description, category,          │
+│ // currencyCode) using primitive types only — so the         │
+│ // NotificationCenterDelegate can reconstruct an             │
+│ // InterventionProposal on tap without needing the app       │
+│ // process to have been alive.                               │
+│ triggerInterval(duration, now, calendar) -> TimeInterval     │
+│ // DEBUG: ~5s for live demo. Release: honours 24h / 7d /     │
+│ // end-of-month exactly.                                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. Architecture diagram (slide 20) — do you need to change it?
+
+Reading the brief again: §3.1 *"Architecture Diagram"* is graded under
+the **Object-Oriented Design** rubric, which asks for *"well-argued
+choice of architectural style for the system"*. The current diagram
+shows the three-tier client/server architecture for the **bank
+connection** path. That's correct and load-bearing for Sprint 1, so
+**don't replace it**.
+
+But Sprint 3 is *on-device only* — it doesn't touch the backend at all
+— and that's actually a notable architectural decision worth a callout.
+Suggest **adding one bullet** to the prose next to the existing
+diagram, or a small inset diagram, along these lines:
+
+> *Sprint 3 (Pause & Reflect) operates entirely on-device. The
+> on-device Foundation Models LLM, local `UNUserNotificationCenter`,
+> and JSON-persisted repositories (`InterventionLogRepository`,
+> `GoalRepository`) keep the user's proposed spend data off the
+> network entirely — no proposal, amount, or category is ever
+> transmitted to the backend or to Apple's servers. This satisfies
+> S3.5 (on-device LLM for privacy) at the architecture level, not
+> just the implementation level.*
+
+PlantUML for an optional Sprint-3 inset (kept small so it can sit
+beside the existing three-tier diagram):
+
+```plantuml
+@startuml Architecture_Sprint3_OnDevice
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+package "iOS device — no network involvement" {
+  component "Pause & Reflect UI\n(SwiftUI views)" as UI
+  component "PreSpendInterventionFlow\n+ UseCase" as Logic
+  component "Foundation Models\n(on-device LLM)" as LLM
+  component "UNUserNotification\nCenter" as UN
+  database  "Local JSON store\n(InterventionLog,\n Goal, Transaction)" as Store
+
+  UI -down-> Logic
+  Logic -right-> LLM    : prompt(facts, impact)
+  Logic -left->  Store  : append / resolve log
+  Logic -down->  UN     : schedule wait reminder
+  UN    -up->    UI     : tap → deep-link
+}
+
+note right of LLM
+  Numbers (ImpactSummary)
+  are NOT generated by the LLM.
+  Computed in Swift, passed
+  into the prompt as facts.
+end note
+@enduml
+```
+
+---
+
+## 10. Final slide-by-slide change list (consolidated)
+
+| Slide | Section | Change |
+|---|---|---|
+| 10 | §2.1 Pause-before-purchase use case | Redraw with PlantUML in §2.2 above; add `Skip` use case. |
+| 12 | §2.2 Use case table (Pause & review) | Reword the `4iii(alt)` alternative to clarify the Skip flow (see §5). |
+| 17 | §2.3.5 S3.4 description | Replace placeholder with text in §3. |
+| 18 | §2.3.6 Sprint 3 test cases | Replace T3.1–T3.8 with T3.1–T3.11 from §4. |
+| 20 | §3.1 Architecture diagram | Keep current diagram. Add one Sprint-3 on-device bullet (§9), or add the small inset diagram. |
+| 21 | §3.2 Class diagram | Either redraw using §7 PlantUML, or split across two slides: keep current Sprint 1+2 diagram, add new Sprint 3 diagram. |
+| 23 | §3.3 Review Spending sequence diagram | **Replace** with the Sprint 3 sequence diagram from §2.3. |
+| 24 | §3.4 Detailed class descriptions | Swap `ReviewSpendingViewModel` for `PreSpendInterventionFlow` (§8.1). Optionally add `PreSpendInterventionUseCase` (§8.2) and `WaitReminderScheduler` (§8.3) if there's room. |
+
+---
+
+## 11. Alignment check against the module brief
+
+Brief requirements vs. plan:
+
+| Brief item | Required quantity | After applying this plan |
+|---|---|---|
+| §1.2 Similar systems | min 3 / person | 3 (Snoop, Emma, YNAB) — unchanged ✅ |
+| §2.1 Use case diagrams | (no minimum, but should cover the system) | Top-level + Transaction import + Manual entry + Pause-before-purchase (with Skip) — covers all three sprints ✅ |
+| §2.2 Use case tables | (no minimum stated, slide says "min 3 / person") | 3 (Connect bank, Manually record, Pause & review) — unchanged ✅ |
+| §2.3 Shall-statements + tests | Each sprint must include min 3 NFRs | S1 NFRs: 3 (S1.3, S1.4, S1.5) ✅<br>S2 NFRs: 1 (S2.3) ⚠️ — *under quota*<br>S3 NFRs: 3 (S3.4, S3.5, S3.6) ✅ |
+| §3.1 Architecture diagram | 1 | 1 (kept) + optional Sprint-3 inset ✅ |
+| §3.2 Class diagram (abstract) | 1 | Updated to include Sprint 3 ✅ |
+| §3.3 Message sequence diagram | (no count) | 3 (Connect bank, Manual add, Pause & Reflect re-decision) ✅ |
+| §3.4 Detailed class descriptions | min 3 / person | 3 if you swap; up to 5 if you add UseCase + Scheduler ✅ |
+
+**⚠️ One thing I noticed that's worth fixing while you're in there:**
+Sprint 2 only has 1 NFR (S2.3: AES-256 secure storage). The brief says
+**"min of 3 NFRs"** per sprint. Suggest promoting two of the existing
+S2 statements to NFRs by rewording, e.g.:
+
+* **S2.4** (persistence across restarts) is already non-functional in
+  nature — reclassify as **(NFR)** instead of (FR).
+* **S2.5** (works without internet) is non-functional in nature too —
+  reclassify as **(NFR)**.
+
+That gives Sprint 2 three NFRs (S2.3, S2.4, S2.5) without any new
+content. Tiny edit, removes a rubric risk.
