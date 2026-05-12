@@ -1,0 +1,62 @@
+@startuml ClassDiagram_Sprint1_2
+title Class Diagram — Sprints 1 & 2 (Bank Connection + Manual Entry + Budgets)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype polyline
+skinparam nodesep 55
+skinparam ranksep 70
+skinparam padding 4
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #555555
+  ArrowColor #333333
+}
+hide empty members
+
+' ===== Sprint 1 — Bank connection =====
+package "Sprint 1 — Bank connection" #EAF4FF {
+  class "ConnectBankView\n(V)"           as S1View
+  class "ConnectBankViewModel\n(C)"      as S1VM
+  class "BankConnectionService\n(C)"     as S1Svc
+  class "SecureTokenStore\n(C)"          as S1Token
+  class "BankConnectionRepository\n(C)"  as S1Repo
+  class "BankConnection\n(M)"            as S1Conn
+  class "Account\n(M)"                   as S1Acct
+}
+
+S1View   --> S1VM    : observes
+S1VM     --> S1Svc   : uses
+S1Svc    --> S1Token : stores token
+S1Svc    --> S1Repo  : updates
+S1Repo "1" --> "0..*" S1Conn : persists
+S1Conn "1" --> "1..*" S1Acct : has
+
+' ===== Sprint 2 — Manual entry + Budgets =====
+package "Sprint 2 — Manual entry & Budgets" #F1FFEA {
+  class "TransactionEntryView\n(V)"         as S2View
+  class "TransactionEntryViewModel\n(C)"    as S2VM
+  class "TransactionSyncService\n(C)"       as S2Svc
+  class "TransactionRepository\n(C)"        as S2Repo
+  class "Transaction\n(M)"                  as S2Tx
+
+  class "BudgetsSheet\n(V)"                 as S2BView
+  class "BudgetService\n(C)"                as S2BSvc
+  class "BudgetRepository\n(C)"             as S2BRepo
+  class "Budget\n(M)"                       as S2Budget
+  class "BudgetCategory\n(M)"               as S2Cat
+}
+
+S2View    --> S2VM    : observes
+S2VM      --> S2Svc   : uses
+S2Svc     --> S2Repo  : saves to
+S2Repo "1" --> "0..*" S2Tx : persists
+S2Tx "*" --> "1" S2Cat : categorised by
+
+S2BView   --> S2BSvc  : uses
+S2BSvc    --> S2BRepo : updates
+S2BRepo "1" --> "0..*" S2Budget : persists
+S2Budget "*" --> "1" S2Cat : applies to
+
+@enduml

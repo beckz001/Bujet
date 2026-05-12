@@ -1,0 +1,58 @@
+@startuml Sequence_PauseReflect_WaitRedecision
+title Message sequence — Pause & Reflect (wait + re-decision)
+
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #555555
+  ParticipantBorderColor #555555
+  ParticipantBackgroundColor #F6F6F6
+  ActorBorderColor #555555
+  ActorBackgroundColor #F6F6F6
+}
+
+actor User
+participant "PauseReflect\nInputView"          as Input
+participant "PreSpend\nInterventionFlow"       as Flow
+participant "PreSpend\nInterventionUseCase"    as UseCase
+participant "WaitReminder\nScheduler"          as Sched
+participant "UNUserNotification\nCenter"       as UN
+participant "NotificationCenter\nDelegate"     as Del
+participant "WaitReminder\nRouter"             as Router
+participant "InterventionLog\nRepository"      as LogRepo
+
+== First decision ==
+User -> Input : enter amount, description, category
+Input -> Flow : submitInput()
+Flow  -> UseCase : evaluate(proposal)
+UseCase --> Flow : InterventionDecision
+Flow  --> Input  : show decision view
+
+User -> Flow : chooseWait(24h)
+Flow -> UseCase : recordDecision(.wait)
+UseCase -> LogRepo : append(pending wait log)
+Flow -> Sched : schedule(proposal, duration)
+Sched -> UN   : add(UNNotificationRequest)
+Flow --> Input : step = .waitConfirmed
+
+== Notification fires ==
+UN  -> Del    : didReceive(response)
+Del -> Router : present(prefilledProposal)
+Router -> Flow : new flow with prefilledProposal
+Flow -> Flow  : start() → runEvaluation()
+Flow --> Input : step = .decision (auto)
+
+== Re-decision: Skip ==
+User -> Flow : chooseSkip()
+Flow -> LogRepo : resolveWait(id, outcome: .skipped)
+note right of LogRepo
+  Single canonical record:
+  the pending wait is *resolved*,
+  not duplicated. The £ amount
+  counts once toward "saved by
+  pausing", regardless of how many
+  times the user snoozed the item.
+end note
+Flow --> Input : dismiss
+
+@enduml

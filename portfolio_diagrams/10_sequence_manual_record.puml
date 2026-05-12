@@ -1,0 +1,42 @@
+@startuml Sequence_ManualRecordTransaction
+title Message sequence — Manually record a transaction
+
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #555555
+  ParticipantBorderColor #555555
+  ParticipantBackgroundColor #F6F6F6
+  ActorBorderColor #555555
+  ActorBackgroundColor #F6F6F6
+}
+
+actor User
+participant "TransactionEntryView"      as View
+participant "TransactionEntryViewModel" as VM
+participant "TransactionRepository"     as Repo
+participant "Transaction"               as Tx
+
+User -> View : tap "Add transaction"
+User -> View : enter amount, date,\ndescription, account, category
+View -> VM   : createTransaction(formData)
+
+VM -> Tx   : build transaction model
+Tx --> VM  : return transaction model
+VM -> VM   : validateInput()
+
+alt validation fails
+  VM --> View : return validation errors
+  View --> User : highlight fields + show message
+else validation passes
+  VM -> Repo : save(transaction)
+  alt save succeeds
+    Repo --> VM   : saved transaction + id
+    VM   --> View : show success + refresh totals
+  else save fails
+    Repo --> VM   : save error
+    VM   --> View : show retry / resolution prompt
+  end
+end
+
+@enduml

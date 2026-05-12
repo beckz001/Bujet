@@ -1,0 +1,68 @@
+@startuml Architecture_ThreeTier
+title Bujet — Three-tier client/server architecture (Sprints 1 & 2)
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam component {
+  BackgroundColor #FDFDFD
+  BorderColor #555555
+}
+skinparam database {
+  BackgroundColor #FFF5D6
+  BorderColor #555555
+}
+skinparam node {
+  BackgroundColor #F0F8FF
+  BorderColor #555555
+}
+skinparam ArrowColor #333333
+skinparam nodesep 50
+skinparam ranksep 60
+
+' ===== Client tier (top) =====
+node "Client tier" as ClientTier {
+  node "Client 1\n(iOS App)" as C1
+  node "Client 2\n(iOS App)" as C2
+  node "Client 3\n(iOS App)" as C3
+}
+
+' ===== Local on-device persistence (side of client tier) =====
+database "Local Storage\n(LocalTransactionRepository)" as Local
+note right of Local
+  Transactions are saved locally
+  on the device. No cloud storage.
+end note
+
+C1 --> Local : save (JSON)
+C2 --> Local : save (JSON)
+C3 --> Local : save (JSON)
+
+' ===== Web / proxy tier =====
+node "Web Server\n(Local backend via ngrok)" as Web
+note right of Web
+  Backend runs locally on the
+  developer machine and is exposed
+  publicly via ngrok.
+end note
+
+C1 -down-> Web : HTTPS REST\n(JSON request / response)
+C2 -down-> Web : HTTPS REST\n(JSON request / response)
+C3 -down-> Web : HTTPS REST\n(JSON request / response)
+
+' ===== API / application tier =====
+component "API Provider Application Server\n(OAuth flow + import processing)" as API
+component "Open Banking\nLogin (bank)" as Bank
+
+Web -down-> API : Forward API request\n/ transactions
+API -right-> Bank : OAuth flow /\nexchange access token
+
+' ===== Data tier =====
+database "Database Server\n(Transaction records)" as DB
+note right of DB
+  Data tier — accessible only
+  by the API application server.
+end note
+
+API -down-> DB : Transactions /\nretrieve transactions
+
+@enduml
