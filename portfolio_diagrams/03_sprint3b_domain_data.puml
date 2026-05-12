@@ -1,0 +1,107 @@
+@startuml ClassDiagram_Sprint3_DomainAndData
+title Sprint 3 — Pause & Reflect (Domain, Services, Repositories, Models)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype polyline
+skinparam nodesep 55
+skinparam ranksep 80
+skinparam padding 4
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #555555
+  ArrowColor #333333
+}
+hide empty members
+
+' Reference back to Flow (drawn in diagram 2) — shown as boundary
+class "PreSpendInterventionFlow\n(C — from diagram 2)" as Flow #DDD
+
+package "Domain — Use case" #EAF4FF {
+  class "PreSpendInterventionUseCase\n(C)" as UseCase
+  class "SpendingContextProvider\n(C)"     as Ctx
+}
+
+package "Services — LLM (polymorphism)" #FFEAEA {
+  interface "LLMNarrativeService"             as LLM
+  class "TemplateNarrativeService\n(C)"        as TmplLLM
+  class "FoundationModelsNarrativeService\n(C)" as FMLLM
+  class "LLMServiceFactory\n(C)"              as Factory
+}
+
+package "Services — Notification" #F1FFEA {
+  class "WaitReminderScheduler\n(C)"        as Sched
+  class "NotificationCenterDelegate\n(C)"   as NotifDel
+  class "WaitReminderRouter\n(C — @Observable)" as Router
+}
+
+package "Repositories" #F5EAFF {
+  interface "InterventionLogRepository" as ILogIF
+  class     "LocalInterventionLogRepository\n(C)" as ILogRepo
+  interface "GoalRepository"            as GoalIF
+  class     "LocalGoalRepository\n(C)"  as GoalRepo
+}
+
+package "Models" #FFFCEA {
+  class "InterventionProposal\n(M)" as Proposal
+  class "InterventionDecision\n(M, @Generable)" as Decision
+  class "InterventionLog\n(M)"      as Log
+  class "ImpactSummary\n(M)"        as Impact
+  class "SpendingFacts\n(M)"        as Facts
+  class "Goal\n(M)"                 as Goal
+  class "WishlistItem\n(M)"         as Wish
+}
+
+' --- Flow consumes use case + services + repos ---
+Flow --> UseCase  : evaluate / record
+Flow --> Sched    : schedule(proposal, duration)
+Flow --> ILogIF   : resolveWait(...)
+Flow --> GoalIF   : create pot
+
+' --- Use case orchestrates ---
+UseCase --> Ctx     : facts + impact
+UseCase --> LLM     : narrative(prompt)
+UseCase --> ILogIF  : append(log)
+
+' --- LLM polymorphism ---
+LLM <|.. TmplLLM
+LLM <|.. FMLLM
+Factory ..> LLM     : selects implementation\n(based on SystemLanguageModel.availability)
+
+' --- Notification path (cross-process deep link) ---
+Sched ..> NotifDel : via UNUserNotificationCenter
+NotifDel --> Router : set pendingProposal
+Router ..> Flow    : opens new flow
+
+' --- Repository concretisations ---
+ILogIF <|.. ILogRepo
+GoalIF <|.. GoalRepo
+
+' --- Model relationships ---
+ILogRepo "1" --> "0..*" Log   : persists
+GoalRepo "1" --> "0..*" Goal  : persists
+Goal "1" --> "0..1" Wish      : linkedItem (pot if non-nil)
+Log --> Proposal              : proposalID
+UseCase ..> Decision          : produces
+Decision --> Proposal         : about
+Decision --> Impact           : numbers (Swift-computed)
+Ctx ..> Facts                 : builds
+
+note right of Impact
+  ImpactSummary numbers are
+  computed in Swift inside
+  SpendingContextProvider.
+  The LLM never produces
+  numbers — only prose.
+end note
+
+note bottom of Log
+  Single-record NFR (S3.4):
+  one log per proposalID.
+  Re-decisions RESOLVE the
+  existing log; they don't
+  create a duplicate.
+end note
+
+@enduml

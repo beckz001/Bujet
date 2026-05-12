@@ -1,0 +1,27 @@
+@startuml UseCase_TopLevel
+title Use Case — Bujet (top level)
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam usecase {
+  BackgroundColor #F6F6F6
+  BorderColor #555555
+}
+skinparam ArrowColor #333333
+
+actor User
+
+rectangle Bujet {
+  usecase "Open Bujet"                          as Open
+  usecase "Pause & reflect before purchase"     as PauseReflect
+  usecase "Transaction import"                  as Import
+  usecase "Manual transaction entry"            as Manual
+
+  User --> Open
+  Open ..> PauseReflect : <<extend>>
+  Open ..> Import       : <<extend>>
+  Open ..> Manual       : <<extend>>
+}
+
+@enduml

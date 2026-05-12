@@ -1,0 +1,49 @@
+@startuml Sequence_ConnectBank
+title Message sequence — Connect to user's bank account
+
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #555555
+  ParticipantBorderColor #555555
+  ParticipantBackgroundColor #F6F6F6
+  ActorBorderColor #555555
+  ActorBackgroundColor #F6F6F6
+}
+
+actor User
+participant "ConnectBankView"           as View
+participant "ConnectBankViewModel"      as VM
+participant "BankConnectionService"     as Svc
+participant "SecureTokenStore"          as Token
+participant "BankConnectionRepository"  as Repo
+participant "TransactionSyncService"    as Sync
+participant "TransactionRepository"     as TxRepo
+
+== Establish connection ==
+User -> View : tap "Connect bank"
+View -> VM   : connectBank(provider)
+VM   -> Svc  : initiateConnection(provider)
+Svc  -> Token : saveToken(token)
+Token --> Svc : success
+Svc  -> Repo : syncConnection(connectionData)
+Repo --> Svc : BankConnection(status = linked)
+Svc  -> Svc  : fetchAccounts()
+Svc  --> VM  : connection + accounts
+VM   --> View : refresh connection state
+
+== Import transactions ==
+User -> View : tap "Import transactions"
+View -> VM   : startSync(connectionID)
+VM   -> Sync : startSync(connectionID)
+Sync -> Repo : getConnections()
+Repo --> Sync : linked connections + accounts
+Sync -> Sync : deduplicateTransactionsByExternalID()
+loop for each new transaction
+  Sync -> TxRepo : save(transaction)
+  TxRepo --> Sync : saved
+end
+Sync --> VM   : sync summary\n(imported / skipped / new total)
+VM   --> View : import results + updated balances
+
+@enduml

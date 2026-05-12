@@ -1,0 +1,48 @@
+@startuml UseCase_PauseBeforePurchase
+title Use Case — Pause & Reflect before purchase
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam usecase {
+  BackgroundColor #F6F6F6
+  BorderColor #555555
+}
+skinparam ArrowColor #333333
+
+actor User
+
+rectangle "Pause & reflect before purchase" {
+  usecase "Enter amount, description\n& category"             as Enter
+  usecase "View reflection\n(budget impact + LLM narrative)"  as Reflect
+
+  usecase "Buy now"                       as BuyNow
+  usecase "Add to wish-list pot"          as Pot
+  usecase "Wait on it\n(24h / 7 days / end of month)" as Wait
+  usecase "Skip\n(re-decision only)"      as Skip
+
+  usecase "Schedule re-decision\nnotification" as Schedule
+  usecase "Tap notification →\nreopen pre-filled sheet" as Redecision
+
+  User --> Enter
+  Enter ..> Reflect : <<include>>
+
+  Reflect <.. BuyNow : <<extend>>
+  Reflect <.. Pot    : <<extend>>
+  Reflect <.. Wait   : <<extend>>
+
+  Wait     ..> Schedule   : <<include>>
+  Schedule ..> Redecision : <<include>>
+  Redecision ..> Reflect  : <<include>>
+
+  Reflect <.. Skip : <<extend>>
+  note bottom of Skip
+    Visible only when the sheet was
+    opened from a wait-reminder tap.
+    Resolves the pending wait as
+    "skipped" — counts as money saved,
+    no pot, no transaction.
+  end note
+}
+
+@enduml
