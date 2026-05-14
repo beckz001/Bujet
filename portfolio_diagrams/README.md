@@ -13,8 +13,7 @@ and re-render to keep the slide deck in sync.
 | §2.1 Use case — Pause before purchase | `07_usecase_pause_before_purchase.puml` | `UseCase_PauseBeforePurchase.png` |
 | §3.1 Architecture — three-tier | `08_architecture_three_tier.puml` | `Architecture_ThreeTier.png` |
 | §3.2 Class diagram — Sprints 1 & 2 | `01_sprint1_2_class_diagram.puml` | `ClassDiagram_Sprint1_2.png` |
-| §3.2 Class diagram — Sprint 3 (Views + Flow) | `02_sprint3a_views_flow.puml` | `ClassDiagram_Sprint3_ViewsAndFlow.png` |
-| §3.2 Class diagram — Sprint 3 (Domain + Data) | `03_sprint3b_domain_data.puml` | `ClassDiagram_Sprint3_DomainAndData.png` |
+| §3.2 Class diagram — Sprint 3 (Data, Domain, Views) | `02_sprint3_data_domains_views.puml` | `ClassDiagram_Sprint3_DataDomainsViews.png` |
 | §3.3 Sequence — Connect bank | `09_sequence_connect_bank.puml` | `Sequence_ConnectBank.png` |
 | §3.3 Sequence — Manually record a transaction | `10_sequence_manual_record.puml` | `Sequence_ManualRecordTransaction.png` |
 | §3.3 Sequence — Pause & Reflect (wait + re-decision) | `11_sequence_pause_reflect.puml` | `Sequence_PauseReflect_WaitRedecision.png` |
