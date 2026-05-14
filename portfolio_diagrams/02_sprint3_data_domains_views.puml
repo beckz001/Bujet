@@ -1,0 +1,148 @@
+@startuml
+title Sprint 3 — Pause & Reflect (Data, Domain, Views)
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 35
+skinparam ranksep 70
+skinparam defaultFontSize 13
+skinparam packageFontStyle bold
+skinparam packageTitleAlignment center
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 12
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #FFFFFF
+  FontSize 13
+}
+skinparam note {
+  BackgroundColor #FFFCEC
+  BorderColor #C9B458
+  FontSize 11
+}
+hide empty members
+hide circle
+
+' ===================== VIEWS =====================
+package "Views (SwiftUI)" #EAF2FB {
+  class PauseReflectInputView <<V>>
+  class PauseReflectDecisionView <<V>>
+}
+
+' ===================== FLOW CONTROLLER =====================
+package "Flow controller" #FBF3E0 {
+  class PreSpendInterventionFlow <<C>> <<@Observable>>
+}
+
+' ===================== WAIT-REMINDER SERVICES (right column) =====================
+package "Services — Wait reminder" #F1E8FA {
+  class WaitReminderScheduler <<C>>
+  class UNUserNotificationCenter <<external>>
+  class NotificationCenterDelegate <<C>>
+  class WaitReminderRouter <<C>> <<@Observable>>
+}
+
+' ===================== DOMAIN =====================
+package "Domain" #EAF6EA {
+  class PreSpendInterventionUseCase <<C>>
+  class SpendingContextProvider <<C>>
+}
+
+' ===================== REPOSITORIES =====================
+package "Repositories" #E7F4F7 {
+  interface TransactionRepository <<I>>
+  interface GoalRepository <<I>>
+  interface InterventionLogRepository <<I>>
+}
+
+' ===================== LLM SERVICES =====================
+package "Services — LLM narrative" #FBE9E7 {
+  class FoundationModelsNarrativeService <<C>>
+  class TemplateNarrativeService <<C>>
+  class LLMServiceFactory <<C>>
+  interface LLMNarrativeService <<I>>
+}
+
+' ===================== MODELS =====================
+package "Models" #FFFDE7 {
+  class InterventionProposal <<M>>
+  class InterventionDecision <<M>>
+  class ImpactSummary <<M>>
+  class SpendingFacts <<M>>
+  class InterventionNarrative <<M>>
+  class InterventionLog <<M>>
+  class Goal <<M>>
+  class WishlistItem <<M>>
+}
+
+' ---------- layout scaffold (hidden) ----------
+PauseReflectInputView -[hidden]down- PreSpendInterventionFlow
+PreSpendInterventionFlow -[hidden]down- PreSpendInterventionUseCase
+PreSpendInterventionUseCase -[hidden]down- LLMNarrativeService
+PreSpendInterventionUseCase -[hidden]right- TransactionRepository
+PreSpendInterventionFlow -[hidden]right- WaitReminderScheduler
+LLMNarrativeService -[hidden]down- InterventionNarrative
+TransactionRepository -[hidden]down- InterventionProposal
+
+' ---------- View wiring ----------
+PauseReflectInputView ..> PreSpendInterventionFlow : observes
+PauseReflectDecisionView ..> PreSpendInterventionFlow : observes
+
+' ---------- Flow wiring ----------
+PreSpendInterventionFlow --> PreSpendInterventionUseCase : evaluates & records
+PreSpendInterventionFlow --> WaitReminderScheduler : schedules wait
+PreSpendInterventionFlow --> GoalRepository : creates pot
+PreSpendInterventionFlow --> TransactionRepository : writes "Buy now" txn
+PreSpendInterventionFlow --> InterventionLogRepository : resolves pending wait
+
+' ---------- Domain wiring ----------
+PreSpendInterventionUseCase --> SpendingContextProvider : uses
+PreSpendInterventionUseCase --> LLMNarrativeService : requests narrative
+PreSpendInterventionUseCase --> InterventionLogRepository : appends log
+PreSpendInterventionUseCase ..> InterventionDecision : produces
+SpendingContextProvider ..> SpendingFacts : produces
+SpendingContextProvider ..> ImpactSummary : produces
+
+' ---------- LLM wiring ----------
+LLMServiceFactory ..> LLMNarrativeService : selects implementation
+TemplateNarrativeService ..|> LLMNarrativeService
+FoundationModelsNarrativeService ..|> LLMNarrativeService
+LLMNarrativeService ..> InterventionNarrative : produces
+
+' ---------- Wait-reminder wiring ----------
+WaitReminderScheduler --> UNUserNotificationCenter : schedules notification
+UNUserNotificationCenter --> NotificationCenterDelegate : delivers tap
+NotificationCenterDelegate --> WaitReminderRouter : sets pendingProposal
+WaitReminderRouter ..> PreSpendInterventionFlow : re-opens pre-filled\n(re-decision)
+
+' ---------- Repository persistence ----------
+InterventionLogRepository --> InterventionLog : persists
+GoalRepository --> Goal : persists
+
+' ---------- Model relationships ----------
+InterventionDecision *-- InterventionProposal : contains
+InterventionDecision *-- ImpactSummary : contains
+InterventionDecision ..> InterventionNarrative : built from
+InterventionLog ..> InterventionProposal : references (proposalID)
+Goal o-- "0..1" WishlistItem : linkedItem
+
+note bottom of SpendingContextProvider
+  Reads Transaction / Budget / Goal / InterventionLog
+  repositories to assemble SpendingFacts. ImpactSummary
+  is pure Swift arithmetic — the LLM never produces numbers.
+end note
+
+note bottom of GoalRepository
+  Each repository is a protocol; concrete JSON-backed
+  types are LocalInterventionLogRepository,
+  LocalGoalRepository and LocalTransactionRepository.
+end note
+
+note right of WaitReminderRouter
+  Snooze -> re-decision loop: tapping the wait
+  notification re-opens the reflect sheet pre-filled.
+  A re-decision RESOLVES the existing pending log
+  rather than adding a new one (single-record NFR S3.4).
+end note
+
+@enduml
