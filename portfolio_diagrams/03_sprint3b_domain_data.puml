@@ -33,7 +33,7 @@ package "Services — LLM (polymorphism)" #FFEAEA {
 package "Services — Notification" #F1FFEA {
   class "WaitReminderScheduler\n(C)"        as Sched
   class "NotificationCenterDelegate\n(C)"   as NotifDel
-  class "WaitReminderRouter\n(C — @Observable)" as Router
+  class "WaitReminderRouter\n(C)" as Router
 }
 
 package "Repositories" #F5EAFF {
@@ -67,7 +67,7 @@ UseCase --> ILogIF  : append(log)
 ' --- LLM polymorphism ---
 LLM <|.. TmplLLM
 LLM <|.. FMLLM
-Factory ..> LLM     : selects implementation\n(based on SystemLanguageModel.availability)
+Factory ..> LLM     : selects implementation\n(based on system availability)
 
 ' --- Notification path (cross-process deep link) ---
 Sched ..> NotifDel : via UNUserNotificationCenter
@@ -81,14 +81,14 @@ GoalIF <|.. GoalRepo
 ' --- Model relationships ---
 ILogRepo "1" --> "0..*" Log   : persists
 GoalRepo "1" --> "0..*" Goal  : persists
-Goal "1" --> "0..1" Wish      : linkedItem (pot if non-nil)
+Goal "1" --> "0..1" Wish      : linkedItem
 Log --> Proposal              : proposalID
 UseCase ..> Decision          : produces
 Decision --> Proposal         : about
 Decision --> Impact           : numbers (Swift-computed)
 Ctx ..> Facts                 : builds
 
-note right of Impact
+note left of Impact
   ImpactSummary numbers are
   computed in Swift inside
   SpendingContextProvider.

@@ -1,5 +1,4 @@
 @startuml UseCase_PauseBeforePurchase
-title Use Case — Pause & Reflect before purchase
 
 left to right direction
 skinparam packageStyle rectangle
@@ -22,7 +21,6 @@ rectangle "Pause & reflect before purchase" {
   usecase "Skip\n(re-decision only)"      as Skip
 
   usecase "Schedule re-decision\nnotification" as Schedule
-  usecase "Tap notification →\nreopen pre-filled sheet" as Redecision
 
   User --> Enter
   Enter ..> Reflect : <<include>>
@@ -32,8 +30,6 @@ rectangle "Pause & reflect before purchase" {
   Reflect <.. Wait   : <<extend>>
 
   Wait     ..> Schedule   : <<include>>
-  Schedule ..> Redecision : <<include>>
-  Redecision ..> Reflect  : <<include>>
 
   Reflect <.. Skip : <<extend>>
   note bottom of Skip
