@@ -1,18 +1,35 @@
 @startuml ClassDiagram_Sprint1_2
 title Class Diagram — Sprints 1 & 2 (Bank Connection + Manual Entry + Budgets)
+hide circles
 
-skinparam classAttributeIconSize 0
-skinparam packageStyle rectangle
-skinparam linetype polyline
-skinparam nodesep 55
-skinparam ranksep 70
-skinparam padding 4
-skinparam shadowing false
-skinparam class {
-  BackgroundColor #FDFDFD
-  BorderColor #555555
-  ArrowColor #333333
+left to right direction
+
+<style>
+classDiagram {
+  nodeSep 55
+  rankSep 70
 }
+
+class {
+  BackGroundColor #FDFDFD
+  LineColor #555555
+}
+
+arrow {
+  LineColor #333333
+}
+
+package {
+  Style rectangle
+}
+
+element {
+  Shadowing 0
+  Padding 4
+}
+
+</style>
+
 hide empty members
 
 ' ===== Sprint 1 — Bank connection =====
@@ -34,7 +51,7 @@ S1Repo "1" --> "0..*" S1Conn : persists
 S1Conn "1" --> "1..*" S1Acct : has
 
 ' ===== Sprint 2 — Manual entry + Budgets =====
-package "Sprint 2 — Manual entry & Budgets" #F1FFEA {
+package "Sprint 2 — Manual entry &amp; Budgets" #F1FFEA {
   class "TransactionEntryView\n(V)"         as S2View
   class "TransactionEntryViewModel\n(C)"    as S2VM
   class "TransactionSyncService\n(C)"       as S2Svc
