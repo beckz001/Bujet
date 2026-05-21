@@ -16,9 +16,6 @@ participant "PauseReflect\nInputView"          as Input
 participant "PreSpend\nInterventionFlow"       as Flow
 participant "PreSpend\nInterventionUseCase"    as UseCase
 participant "WaitReminder\nScheduler"          as Sched
-participant "UNUserNotification\nCenter"       as UN
-participant "NotificationCenter\nDelegate"     as Del
-participant "WaitReminder\nRouter"             as Router
 participant "InterventionLog\nRepository"      as LogRepo
 
 == First decision ==
@@ -32,13 +29,10 @@ User -> Flow : chooseWait(24h)
 Flow -> UseCase : recordDecision(.wait)
 UseCase -> LogRepo : append(pending wait log)
 Flow -> Sched : schedule(proposal, duration)
-Sched -> UN   : add(UNNotificationRequest)
 Flow --> Input : step = .waitConfirmed
 
-== Notification fires ==
-UN  -> Del    : didReceive(response)
-Del -> Router : present(prefilledProposal)
-Router -> Flow : new flow with prefilledProposal
+== Reminder fires ==
+Sched -> Flow : reopen(prefilledProposal)
 Flow -> Flow  : start() → runEvaluation()
 Flow --> Input : step = .decision (auto)
 
