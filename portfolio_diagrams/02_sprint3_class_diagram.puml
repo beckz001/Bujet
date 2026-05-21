@@ -1,0 +1,94 @@
+@startuml ClassDiagram_Sprint3
+title Class Diagram — Sprint 3 (Pause & Reflect)
+hide circles
+
+' Landscape flow + capped to a 16:9 box so it drops onto a PowerPoint slide.
+left to right direction
+scale max 1280*720
+
+<style>
+classDiagram {
+  ' wider gaps between columns, tighter gaps within them -> short & wide (16:9)
+  nodeSep 40
+  rankSep 95
+}
+
+class {
+  BackGroundColor #FFF8E1
+  LineColor #555555
+}
+
+arrow {
+  LineColor #333333
+}
+
+package {
+  Style rectangle
+}
+
+element {
+  Shadowing 0
+  Padding 4
+}
+</style>
+
+hide empty members
+
+' ===================== CLASSES =====================
+' Names match the Pause & Reflect sequence diagram (11_sequence_pause_reflect.puml)
+' and the other Sprint 3 diagrams.
+class "PauseReflectInputView\n(V)"          as Sheet
+class "PreSpendInterventionFlow\n(C)"       as Flow
+class "PreSpendInterventionUseCase\n(C)"    as Eval
+
+class "WaitReminderScheduler\n(M)"          as Scheduler
+
+class "GoalRepository\n(M)"                 as GoalRepo
+class "TransactionRepository\n(M)"          as TxRepo
+class "InterventionLogRepository\n(M)"      as LogRepo
+
+class "InterventionProposal\n(M)"            as Prop
+class "BudgetImpact\n(M)"                    as Impact
+class "InterventionNarrative\n(M)"           as Narr
+class "InterventionDecision\n(M)"            as Rec
+
+class "Goal\n(M)"                            as Goal
+class "WishlistItem\n(M)"                    as Wish
+class "Transaction\n(M)"                     as Tx
+class "InterventionLog\n(M)"                 as Log
+
+' ===================== CONTROLLER WIRING =====================
+Sheet "1" --> "1" Flow : observes
+
+Flow --> Eval      : evaluates
+Flow --> Scheduler : schedules
+Flow --> GoalRepo  : creates goal
+Flow --> TxRepo    : writes
+Flow --> LogRepo   : resolves (on re-decision)
+
+' ===================== EVALUATION WIRING =====================
+Eval ..> Rec     : produces
+Eval --> LogRepo : records
+
+' ===================== COMPOSITION (filled diamond) =====================
+' An InterventionDecision owns its parts — they have no meaning outside it.
+Rec *-- "1" Prop   : about
+Rec *-- "1" Impact : contains
+Rec *-- "1" Narr   : contains
+
+' ===================== AGGREGATION (hollow diamond) =====================
+' A Goal references a wish-list item, but the item exists independently.
+Goal o-- "0..1" Wish : links to
+
+' ===================== PERSISTENCE =====================
+GoalRepo "1" --> "0..*" Goal : persists
+TxRepo   "1" --> "0..*" Tx   : persists
+LogRepo  "1" --> "0..*" Log  : persists
+
+note bottom of Eval
+  The LLM only writes the words (InterventionNarrative).
+  The over/under-budget numbers (BudgetImpact) are
+  computed in Swift — the model never produces figures.
+end note
+
+@enduml
