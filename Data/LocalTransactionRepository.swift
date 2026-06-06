@@ -6,6 +6,29 @@
 //
 import Foundation
 
+/// # LocalTransactionRepository
+///
+/// **What it is** — the on-device persistence layer for the user's
+/// transactions, and the concrete implementation of the `TransactionRepository`
+/// protocol that the rest of the app depends on.
+///
+/// **What it does** — reads and writes the full transaction list as a single
+/// JSON file in the app's Documents directory. It exposes a small, intent-named
+/// API (`fetchAll`, `add`, `replaceImported`, `clear(source:)`) rather than raw
+/// file access, sorts results newest-first, and distinguishes `.manual` entries
+/// the user typed from `.imported` ones pulled from a bank so a re-import can
+/// replace imported rows without wiping manual ones. On a decode failure (e.g.
+/// the stored schema predates a new field) it self-heals by clearing the file
+/// instead of crashing.
+///
+/// **Why it exists** — Bujet is privacy-first and offline-capable, so financial
+/// data never leaves the device; a flat JSON file keeps the coursework
+/// reviewable with no database or server dependency. It's an `actor` so all
+/// reads and writes are serialised, preventing data races when imports,
+/// manual edits and the intervention flow touch storage concurrently.
+/// Hiding all of this behind the protocol means callers (view models, use
+/// cases) are decoupled from *how* transactions are stored and could be pointed
+/// at SwiftData or a server later with no change to them.
 actor LocalTransactionRepository: TransactionRepository {
     private let fileURL = URL.documentsDirectory.appending(path: "transactions.json")
     private let encoder: JSONEncoder

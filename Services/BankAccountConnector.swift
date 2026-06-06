@@ -23,8 +23,30 @@ enum BankConnectionError: LocalizedError {
     }
 }
 
-/// Orchestrates the TrueLayer OAuth handshake and backend import fetch,
-/// returning the raw transaction list on success.
+/// # BankAccountConnector
+///
+/// **What it is** — the concrete service that drives a single "connect my
+/// bank" attempt end to end. It is the code behind the `BankConnectionService`
+/// box in the Sprint 1–2 diagrams; in the implementation that one box is split
+/// into `BackendAuthClient` (talks to our backend), `TrueLayerAuthService`
+/// (drives the system OAuth sheet) and this type, which orchestrates the two.
+///
+/// **What it does** — given a chosen `BankProvider` it:
+/// 1. short-circuits to canned data for the demo provider so the app is
+///    reviewable without real bank credentials;
+/// 2. asks the backend to start a TrueLayer auth session;
+/// 3. hands the auth URL to `ASWebAuthenticationSession` and waits for the
+///    redirect back into the app;
+/// 4. parses the callback URL, turning every failure mode (user cancel, API
+///    error, failed status, missing session) into a typed Swift error;
+/// 5. fetches the imported transactions for that session and re-stamps them
+///    with a local connection ID before returning them.
+///
+/// **Why it exists** — it hides OAuth, URL parsing and backend specifics behind
+/// the small `BankConnecting` protocol so `HomeViewModel` only ever sees
+/// "give me a provider, get back transactions or an error." That seam keeps the
+/// view layer testable and lets the whole connection stack be swapped for a
+/// mock in previews and unit tests.
 @MainActor
 final class BankAccountConnector: BankConnecting {
     private let authClient: BackendAuthClient
