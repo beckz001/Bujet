@@ -10,6 +10,34 @@ enum PreSpendInterventionStep: Hashable {
     case potCreated(Goal)
 }
 
+/// # PreSpendInterventionFlow
+///
+/// **What it is** — the observable state-and-coordination object behind the
+/// "Pause & Reflect" sheet: the screen-state model that owns one run of the
+/// pre-spend intervention, from typing in a purchase to choosing what to do
+/// about it.
+///
+/// **What it does** — it walks the user through a small state machine
+/// (`PreSpendInterventionStep`: input → decision → wait-confirmed / pot-created)
+/// and holds all the form and evaluation state the SwiftUI view binds to. It
+/// validates the input, nudges the user to set a budget first when the category
+/// has none, asks the `PreSpendInterventionUseCase` to generate a reflection
+/// (the on-device LLM feature for Sprint 3), and then records whichever choice
+/// the user makes — Buy now, Wait, Add to a savings pot, or Skip — by calling
+/// the relevant repositories and scheduling a wait reminder. It also handles
+/// "re-decision" mode, where the flow is re-opened from a wait notification and
+/// must resolve the original pending wait log instead of writing duplicate
+/// entries (so "saved by pausing" totals aren't double-counted).
+///
+/// **Why it exists** — it keeps the SwiftUI view thin and declarative: the view
+/// renders whatever `step` is current and forwards taps, while all the
+/// orchestration, validation, persistence and side effects live here. By
+/// depending only on protocols (`GoalRepository`, `BudgetRepository`,
+/// `TransactionRepository`, `InterventionLogRepository`) and a use case rather
+/// than concrete services, it stays unit-testable and isolates the intervention
+/// feature from the rest of the app. It is `@MainActor @Observable` because it
+/// drives UI directly, and uses callbacks (`onPotsChanged`, `onDismissRequested`,
+/// etc.) so the parent screen — not this flow — owns navigation and refresh.
 @MainActor
 @Observable
 final class PreSpendInterventionFlow: Identifiable {
