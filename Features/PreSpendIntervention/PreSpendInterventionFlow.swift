@@ -35,7 +35,7 @@ final class PreSpendInterventionFlow: Identifiable {
     // Input form
     var amountText: String = ""
     var itemDescription: String = ""
-    var category: TransactionCategory = .shopping
+    var category: TransactionCategory = .bills
     var currencyCode: String = "GBP"
     var inputErrorMessage: String?
 

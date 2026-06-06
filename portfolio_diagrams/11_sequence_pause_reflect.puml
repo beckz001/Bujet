@@ -12,11 +12,11 @@ skinparam sequence {
 }
 
 actor User
-participant "PauseReflect\nInputView"          as Input
-participant "PreSpend\nInterventionFlow"       as Flow
-participant "PreSpend\nInterventionUseCase"    as UseCase
-participant "WaitReminder\nScheduler"          as Sched
-participant "InterventionLog\nRepository"      as LogRepo
+participant "PauseReflectionInputView"          as Input
+participant "InterventionFlowController"       as Flow
+participant "InterventionEvaluationController"    as UseCase
+participant "WaitReminderScheduler"          as Sched
+participant "InterventionLogRepository"      as LogRepo
 
 == First decision ==
 User -> Input : enter amount, description, category
